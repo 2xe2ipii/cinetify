@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Quote, Download, Loader2 } from 'lucide-react';
+import { Quote, Download,  Loader2 } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import type { MovieMatch } from '../types';
 
@@ -72,7 +72,8 @@ export const MovieTicket = ({ match, tracks, artists, userName }: Props) => {
       const dataUrl = await toPng(ticketRef.current, {
         cacheBust: true,
         pixelRatio: 3,
-        backgroundColor: 'transparent',
+        // FIX: Force the background color to match the theme (prevents black background)
+        backgroundColor: theme.bgHex, 
         style: { transform: 'none' }
       });
       const link = document.createElement('a');
@@ -80,7 +81,7 @@ export const MovieTicket = ({ match, tracks, artists, userName }: Props) => {
       link.href = dataUrl;
       link.click();
     } catch (err) { alert("Download failed. Try screenshotting!"); } finally { setIsDownloading(false); }
-  }, [match.title]);
+  }, [match.title, theme.bgHex]);
 
   return (
     <div className="w-full flex flex-col items-center gap-6 animate-in slide-in-from-bottom-8 duration-700">
@@ -101,103 +102,103 @@ export const MovieTicket = ({ match, tracks, artists, userName }: Props) => {
         </button>
       </div>
 
-      {/* --- THE TICKET (Fixed 9:16 Aspect Ratio) --- */}
+      {/* --- THE TICKET (9:16 Story Format) --- */}
       <div 
         ref={ticketRef}
         className={`relative aspect-[9/16] w-full max-w-[380px] shadow-2xl overflow-hidden flex flex-col rounded-[24px] ${theme.text} ${theme.font}`}
         style={{ backgroundColor: theme.bgHex }}
       >
         
-        {/* === TOP SECTION: POSTER (3/5 Height = 60%) === */}
-        <div className="h-[60%] relative bg-black overflow-hidden z-0">
+        {/* === POSTER SECTION (Top 40%) - Reduced size to give list more room === */}
+        <div className="h-[40%] relative bg-black overflow-hidden z-0">
           <CorsImg 
             src={match.posterPath} 
             alt="Poster"
-            // CHANGED: object-center ensures we see the actors/center of poster, not just the sky/title
             className="w-full h-full object-cover object-center" 
           />
           
-          {/* THE BLEND */}
+          {/* Blend Gradient */}
           <div 
-            className="absolute inset-x-0 bottom-0 h-40 z-10"
-            style={{ background: `linear-gradient(to top, ${theme.bgHex} 10%, transparent)` }}
+            className="absolute inset-x-0 bottom-0 h-32 z-10"
+            style={{ background: `linear-gradient(to top, ${theme.bgHex} 15%, transparent)` }}
           />
           
-          {/* Quote (Removed Vibe Check Label) */}
-          <div className="absolute bottom-6 left-6 right-6 z-20">
-             <div className="flex items-center gap-2 opacity-80 mb-2">
+          {/* Quote */}
+          <div className="absolute bottom-4 left-6 right-6 z-20">
+             <div className="flex items-center gap-2 opacity-80 mb-1">
                  <Quote size={12} className={currentTheme === 'classic' || currentTheme === 'retro' ? 'text-stone-900' : 'text-white'} />
-                 {/* REMOVED: Vibe Check Text */}
              </div>
-             <p className={`text-xl font-serif italic leading-tight drop-shadow-md opacity-90 ${currentTheme === 'classic' || currentTheme === 'retro' ? 'text-stone-900' : 'text-white'}`}>
+             <p className={`text-lg font-serif italic leading-tight drop-shadow-md opacity-90 ${currentTheme === 'classic' || currentTheme === 'retro' ? 'text-stone-900' : 'text-white'}`}>
                 "{match.quote}"
              </p>
           </div>
         </div>
 
-        {/* === BOTTOM SECTION: DATA STUB (40%) === */}
-        <div className="flex-1 relative z-10 flex flex-col px-6 pb-4 pt-0">
+        {/* === DATA SECTION (Bottom 60%) - Expanded for readability === */}
+        <div className="flex-1 relative z-10 flex flex-col px-6 pb-5 pt-2">
           
           {/* Divider */}
-          <div className="w-full border-t-2 border-dashed border-current/20 mb-3 relative">
+          <div className="w-full border-t-2 border-dashed border-current/20 mb-4 relative">
              <div className="absolute -left-9 -top-3 w-6 h-6 rounded-full bg-stone-950" /> 
              <div className="absolute -right-9 -top-3 w-6 h-6 rounded-full bg-stone-950" />
           </div>
 
-          {/* Header */}
-          <div className="mb-3 flex justify-between items-start">
-            <div className="w-[75%]">
-               <h1 className="text-3xl font-black uppercase tracking-tighter leading-[0.9] mb-1 line-clamp-2">
+          {/* Title Header */}
+          <div className="mb-4 flex justify-between items-start">
+            <div className="w-[80%]">
+               <h1 className="text-3xl font-black uppercase tracking-tighter leading-none mb-1 line-clamp-2">
                  {match.title}
                </h1>
-               <span className={`inline-block text-[9px] font-bold uppercase tracking-widest ${theme.accent}`}>
+               <span className={`inline-block text-[10px] font-bold uppercase tracking-widest ${theme.accent}`}>
                  {match.genre}
                </span>
             </div>
-            <div className="border border-current/30 rounded p-1 text-center opacity-60">
+            {/* Minimal Stamp */}
+            <div className="border border-current/30 rounded p-1 text-center opacity-50">
                <div className="text-[7px] uppercase font-black leading-none">ADMIT</div>
                <div className="text-[7px] uppercase font-black leading-none">ONE</div>
             </div>
           </div>
 
-          {/* Navigation */}
-          <div className="flex w-full border-b border-current/10 text-[9px] font-bold uppercase tracking-widest mb-2">
-             <button onClick={() => setActiveTab('soundtrack')} className={`flex-1 pb-1 hover:opacity-100 transition text-left ${activeTab === 'soundtrack' ? 'opacity-100 border-b-2 border-current' : 'opacity-40'}`}>Tracks</button>
-             <button onClick={() => setActiveTab('cast')} className={`flex-1 pb-1 hover:opacity-100 transition text-center ${activeTab === 'cast' ? 'opacity-100 border-b-2 border-current' : 'opacity-40'}`}>Cast</button>
-             <button onClick={() => setActiveTab('genres')} className={`flex-1 pb-1 hover:opacity-100 transition text-right ${activeTab === 'genres' ? 'opacity-100 border-b-2 border-current' : 'opacity-40'}`}>Genres</button>
+          {/* Tabs */}
+          <div className="flex w-full border-b border-current/10 text-[10px] font-bold uppercase tracking-widest mb-3">
+             <button onClick={() => setActiveTab('soundtrack')} className={`flex-1 pb-2 hover:opacity-100 transition text-left ${activeTab === 'soundtrack' ? 'opacity-100 border-b-2 border-current' : 'opacity-40'}`}>Tracks</button>
+             <button onClick={() => setActiveTab('cast')} className={`flex-1 pb-2 hover:opacity-100 transition text-center ${activeTab === 'cast' ? 'opacity-100 border-b-2 border-current' : 'opacity-40'}`}>Cast</button>
+             <button onClick={() => setActiveTab('genres')} className={`flex-1 pb-2 hover:opacity-100 transition text-right ${activeTab === 'genres' ? 'opacity-100 border-b-2 border-current' : 'opacity-40'}`}>Genres</button>
           </div>
 
-          {/* Data List */}
+          {/* List Content - BIGGER TEXT */}
           <div className="flex-1 overflow-hidden">
              {activeTab === 'soundtrack' && (
                <div className="flex flex-col justify-between h-full pb-2">
                  {tracks.slice(0, 10).map((t, i) => (
-                   <div key={i} className="flex justify-between items-baseline text-[10px] w-full">
-                     <div className="flex items-center gap-2 overflow-hidden w-[70%]">
-                       <span className="font-mono opacity-40 text-[9px] w-3 flex-shrink-0">{i+1}.</span>
-                       <span className="font-bold truncate">{t.name}</span>
+                   <div key={i} className="flex justify-between items-center text-xs w-full py-[2px]">
+                     <div className="flex items-center gap-3 overflow-hidden w-[70%]">
+                       <span className="font-mono opacity-40 text-[10px] w-4 flex-shrink-0">{i+1}.</span>
+                       {/* Increased font weight and size slightly */}
+                       <span className="font-bold truncate text-[11px]">{t.name}</span>
                      </div>
-                     <span className="opacity-50 text-[9px] truncate w-[25%] text-right">{t.artists[0].name}</span>
+                     <span className="opacity-60 text-[10px] truncate w-[25%] text-right">{t.artists[0].name}</span>
                    </div>
                  ))}
                </div>
              )}
 
              {activeTab === 'cast' && (
-                <div className="grid grid-cols-2 gap-2 content-start">
+                <div className="grid grid-cols-2 gap-3 content-start pt-2">
                    {artists.slice(0, 8).map((a, i) => (
-                     <div key={i} className="flex items-center gap-2 bg-black/5 p-1.5 rounded-md">
-                       {a.images?.[0]?.url && <CorsImg src={a.images[0].url} className="w-6 h-6 rounded-full grayscale object-cover" />}
-                       <span className="text-[9px] font-bold uppercase truncate">{a.name}</span>
+                     <div key={i} className="flex items-center gap-3 bg-black/5 p-2 rounded-md">
+                       {a.images?.[0]?.url && <CorsImg src={a.images[0].url} className="w-8 h-8 rounded-full grayscale object-cover" />}
+                       <span className="text-[10px] font-bold uppercase truncate">{a.name}</span>
                      </div>
                    ))}
                 </div>
              )}
 
              {activeTab === 'genres' && (
-                <div className="flex flex-wrap gap-1.5 content-start">
+                <div className="flex flex-wrap gap-2 content-start pt-2">
                    {topGenres.map((g, i) => (
-                     <span key={i} className="px-2 py-1 text-[9px] font-bold uppercase tracking-wider border border-current/20 rounded-sm">
+                     <span key={i} className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider border border-current/20 rounded-sm">
                        {g}
                      </span>
                    ))}
@@ -206,13 +207,13 @@ export const MovieTicket = ({ match, tracks, artists, userName }: Props) => {
           </div>
 
           {/* Footer */}
-          <div className="mt-1 pt-2 border-t border-dashed border-current/10 opacity-40 flex justify-between items-end">
+          <div className="mt-2 pt-3 border-t border-dashed border-current/10 opacity-40 flex justify-between items-end">
              <div className="flex flex-col">
                 <span className="text-[7px] uppercase tracking-widest font-bold">Issued To</span>
                 <span className="text-[7px] font-mono">{userName}</span>
              </div>
-             <div className="h-4 flex items-stretch gap-[1px]">
-                {[...Array(25)].map((_, i) => (
+             <div className="h-5 flex items-stretch gap-[2px]">
+                {[...Array(20)].map((_, i) => (
                    <div key={i} className="bg-current" style={{ width: Math.random() > 0.5 ? '2px' : '1px' }} />
                 ))}
              </div>
@@ -222,7 +223,7 @@ export const MovieTicket = ({ match, tracks, artists, userName }: Props) => {
       </div>
       
       <p className="text-[10px] text-stone-500 uppercase tracking-widest animate-pulse pb-10">
-        10 Tracks • 9:16 Story Format
+        Ready for IG Stories
       </p>
     </div>
   );

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Download, Loader2, Disc, Users, Tag } from 'lucide-react';
+import { Download, Loader2 } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import type { MovieMatch } from '../types';
 
@@ -18,7 +18,7 @@ const THEME_CONFIG: Record<
   { bgHex: string; text: string; accent: string; font: string; border: string; highlight: string; panel: string }
 > = {
   classic: { 
-    bgHex: '#e6e6e6', 
+    bgHex: '#e8e8e3', 
     text: 'text-stone-900', 
     accent: 'text-red-700', 
     font: 'font-mono', 
@@ -27,30 +27,30 @@ const THEME_CONFIG: Record<
     panel: 'bg-stone-200'
   },
   midnight: { 
-    bgHex: '#080808', 
+    bgHex: '#0a0a0a', 
     text: 'text-stone-100', 
     accent: 'text-cyan-400', 
     font: 'font-sans', 
-    border: 'border-stone-700',
+    border: 'border-stone-800',
     highlight: 'bg-white text-black',
     panel: 'bg-stone-900'
   },
   retro: { 
-    bgHex: '#f4ecd8', 
+    bgHex: '#fdf6e3', 
     text: 'text-amber-950', 
     accent: 'text-orange-700', 
     font: 'font-serif', 
-    border: 'border-amber-900/30',
+    border: 'border-amber-900/20',
     highlight: 'bg-amber-900 text-amber-50',
     panel: 'bg-amber-100'
   },
   blueprint: { 
-    bgHex: '#172554', 
-    text: 'text-blue-50', 
+    bgHex: '#1e3a8a', 
+    text: 'text-blue-100', 
     accent: 'text-yellow-400', 
     font: 'font-mono', 
-    border: 'border-blue-400/40',
-    highlight: 'bg-yellow-400 text-blue-950',
+    border: 'border-blue-400/30',
+    highlight: 'bg-yellow-400 text-blue-900',
     panel: 'bg-blue-900/50'
   },
 };
@@ -89,7 +89,7 @@ const CorsImg = ({ src, className, alt }: { src: string | undefined; className?:
 
 const Barcode = ({ className }: { className?: string }) => (
   <div className={`flex items-stretch h-full w-full gap-[3px] ${className}`}>
-    {[...Array(24)].map((_, i) => (
+    {[...Array(26)].map((_, i) => (
       <div 
         key={i} 
         className="bg-current opacity-80" 
@@ -102,7 +102,7 @@ const Barcode = ({ className }: { className?: string }) => (
   </div>
 );
 
-export const MovieTicket = ({ match, tracks, artists }: Props) => {
+export const MovieTicket = ({ match, tracks, artists, userName }: Props) => {
   const [activeTab, setActiveTab] = useState<Tab>('soundtrack');
   const [currentTheme, setCurrentTheme] = useState<Theme>('classic');
   const [isDownloading, setIsDownloading] = useState(false);
@@ -128,7 +128,7 @@ export const MovieTicket = ({ match, tracks, artists }: Props) => {
       const dataUrl = await toPng(ticketRef.current, {
         cacheBust: true,
         pixelRatio: 3,
-        backgroundColor: 'transparent', 
+        backgroundColor: 'transparent', // FIX: Use string 'transparent' instead of null
       });
       const link = document.createElement('a');
       link.download = `Sinetify_${match.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.png`;
@@ -174,31 +174,31 @@ export const MovieTicket = ({ match, tracks, artists }: Props) => {
           className={`relative aspect-[9/16] w-full max-w-[380px] overflow-hidden flex flex-col ${theme.text} ${theme.font}`}
           style={{ 
             backgroundColor: theme.bgHex,
-            // NOTCH MASK: Moved to 62% to prioritize poster space
-            maskImage: `radial-gradient(circle at 0% 62%, transparent 12px, black 13px), 
-                        radial-gradient(circle at 100% 62%, transparent 12px, black 13px)`,
-            WebkitMaskImage: `radial-gradient(circle at 0% 62%, transparent 12px, black 13px), 
-                              radial-gradient(circle at 100% 62%, transparent 12px, black 13px)`
+            // NOTCH MASK
+            maskImage: `radial-gradient(circle at 0% 55%, transparent 12px, black 13px), 
+                        radial-gradient(circle at 100% 55%, transparent 12px, black 13px)`,
+            WebkitMaskImage: `radial-gradient(circle at 0% 55%, transparent 12px, black 13px), 
+                              radial-gradient(circle at 100% 55%, transparent 12px, black 13px)`
           }}
         >
-          {/* --- POSTER BACKGROUND (Top 65%) --- */}
-          <div className="absolute top-0 left-0 w-full h-[65%] z-0">
+          {/* --- POSTER BACKGROUND (Top 60%) --- */}
+          <div className="absolute top-0 left-0 w-full h-[60%] z-0">
              <CorsImg
                src={match.posterPath}
                alt="Poster"
                className="w-full h-full object-cover object-top"
              />
-             {/* GRADIENT FIX: Starts fading at 55% instead of 30% */}
+             {/* FADE GRADIENT */}
              <div 
                className="absolute inset-0"
                style={{
-                 background: `linear-gradient(to bottom, transparent 55%, ${theme.bgHex} 90%, ${theme.bgHex} 100%)`
+                 background: `linear-gradient(to bottom, transparent 40%, ${theme.bgHex} 65%, ${theme.bgHex} 100%)`
                }}
              />
           </div>
 
           {/* Paper Texture */}
-          <div className="absolute inset-0 z-10 opacity-[0.06] pointer-events-none mix-blend-multiply" 
+          <div className="absolute inset-0 z-10 opacity-[0.05] pointer-events-none mix-blend-multiply" 
              style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }} 
           />
 
@@ -206,16 +206,16 @@ export const MovieTicket = ({ match, tracks, artists }: Props) => {
           <div className="relative z-20 flex flex-col h-full">
 
             {/* TOP SECTION (Poster Area) */}
-            <div className="h-[62%] p-5 flex flex-col justify-between">
-               {/* Header Badge */}
-               <div className="flex justify-center mt-3">
-                 <div className={`px-2 py-0.5 ${isDark ? 'bg-white text-black' : 'bg-black text-white'} text-[9px] font-black uppercase tracking-[0.25em] shadow-lg`}>
+            <div className="h-[55%] p-5 flex flex-col justify-between">
+               {/* Now Showing Badge */}
+               <div className="flex justify-center mt-4">
+                 <div className={`px-3 py-1 ${isDark ? 'bg-white text-black' : 'bg-black text-white'} text-[10px] font-black uppercase tracking-[0.25em] shadow-lg`}>
                     Now Showing
                  </div>
                </div>
                
-               {/* Bottom Badges (Genre / Admit One) */}
-               <div className="w-full flex justify-between items-end pb-2">
+               {/* Metadata Pills */}
+               <div className="w-full flex justify-between items-end pb-1">
                   <div className={`px-2 py-1 ${theme.panel} backdrop-blur-md border ${theme.border} rounded-sm shadow-sm`}>
                      <p className="text-[9px] font-bold uppercase tracking-wider opacity-90 leading-none">
                         {match.genre.split('/')[0]}
@@ -228,34 +228,46 @@ export const MovieTicket = ({ match, tracks, artists }: Props) => {
                </div>
             </div>
 
-            {/* --- PERFORATION LINE (Matched to Notch at 62%) --- */}
+            {/* --- PERFORATION LINE --- */}
             <div className="relative w-full h-[2px] flex items-center justify-center">
                <div className={`w-[88%] border-t-[3px] border-dashed ${theme.border} opacity-50`} />
             </div>
 
-            {/* --- DATA STUB (Bottom 38%) --- */}
-            <div className="flex-1 flex flex-col px-5 pt-1 pb-3 bg-gradient-to-b from-transparent to-black/5">
+            {/* --- DATA STUB --- */}
+            <div className="flex-1 flex flex-col px-5 pt-0 pb-4">
               
-              {/* COMPACT NAV */}
-              <div className="flex justify-between items-center mb-1 border-b border-current/10 pb-1">
-                 <div className="flex gap-4">
-                    <button onClick={() => setActiveTab('soundtrack')} className={`transition hover:opacity-100 ${activeTab === 'soundtrack' ? 'opacity-100 scale-105' : 'opacity-40'}`}>
-                      <Disc size={15} />
-                    </button>
-                    <button onClick={() => setActiveTab('cast')} className={`transition hover:opacity-100 ${activeTab === 'cast' ? 'opacity-100 scale-105' : 'opacity-40'}`}>
-                      <Users size={15} />
-                    </button>
-                    <button onClick={() => setActiveTab('genres')} className={`transition hover:opacity-100 ${activeTab === 'genres' ? 'opacity-100 scale-105' : 'opacity-40'}`}>
-                      <Tag size={15} />
-                    </button>
-                 </div>
-                 <span className="text-[7px] font-mono opacity-50 uppercase">{new Date().toLocaleDateString()}</span>
+              {/* TEXT NAVIGATION */}
+              <div className="flex w-full border-b border-current/20 text-[10px] font-bold uppercase tracking-widest mb-3">
+                <button
+                  onClick={() => setActiveTab('soundtrack')}
+                  className={`flex-1 pb-2 hover:opacity-100 transition text-left ${
+                    activeTab === 'soundtrack' ? 'opacity-100 border-b-2 border-current' : 'opacity-40'
+                  }`}
+                >
+                  Tracks
+                </button>
+                <button
+                  onClick={() => setActiveTab('cast')}
+                  className={`flex-1 pb-2 hover:opacity-100 transition text-center ${
+                    activeTab === 'cast' ? 'opacity-100 border-b-2 border-current' : 'opacity-40'
+                  }`}
+                >
+                  Cast
+                </button>
+                <button
+                  onClick={() => setActiveTab('genres')}
+                  className={`flex-1 pb-2 hover:opacity-100 transition text-right ${
+                    activeTab === 'genres' ? 'opacity-100 border-b-2 border-current' : 'opacity-40'
+                  }`}
+                >
+                  Genres
+                </button>
               </div>
 
               {/* LIST CONTENT */}
-              <div className="flex-1 flex flex-col justify-center">
+              <div className="flex-1 flex flex-col justify-start">
                 {activeTab === 'soundtrack' && (
-                    <div className="flex flex-col gap-[2px]">
+                    <div className="flex flex-col gap-1.5">
                       {tracks.slice(0, 7).map((t, i) => (
                         <div key={i} className="flex items-center justify-between w-full text-[11px] leading-tight group">
                           <div className="flex items-center gap-2 truncate max-w-[75%]">
@@ -263,12 +275,12 @@ export const MovieTicket = ({ match, tracks, artists }: Props) => {
                               <span className="font-mono text-[9px] opacity-40 w-3 text-right group-hover:text-red-500 transition-colors">
                                 {i + 1}
                               </span>
-                              {/* Title - Bold for readability */}
+                              {/* Title */}
                               <span className="font-bold uppercase tracking-tight truncate opacity-95">
                                 {t.name}
                               </span>
                           </div>
-                          {/* Artist - Slightly smaller */}
+                          {/* Artist */}
                           <span className="text-[9px] font-medium opacity-60 truncate max-w-[20%] text-right">
                             {t.artists[0].name}
                           </span>
@@ -278,7 +290,7 @@ export const MovieTicket = ({ match, tracks, artists }: Props) => {
                 )}
                 
                 {activeTab === 'cast' && (
-                    <div className="grid grid-cols-4 gap-2 pt-1">
+                    <div className="grid grid-cols-4 gap-2 pt-2">
                       {artists.slice(0, 8).map((a, i) => (
                           <div key={i} className="flex flex-col items-center gap-1">
                             <div className={`w-10 h-10 rounded-full overflow-hidden grayscale ${theme.panel} ring-1 ring-current/10`}>
@@ -291,7 +303,7 @@ export const MovieTicket = ({ match, tracks, artists }: Props) => {
                 )}
 
                 {activeTab === 'genres' && (
-                  <div className="flex flex-wrap gap-1.5 content-center justify-center h-full">
+                  <div className="flex flex-wrap gap-1.5 content-start pt-2 justify-center">
                     {topGenres.map((g, i) => (
                       <span key={i} className={`px-2 py-1 text-[9px] font-bold uppercase border ${theme.border} ${i < 2 ? theme.highlight : 'opacity-60 bg-current/5'}`}>
                         {g}
@@ -301,21 +313,21 @@ export const MovieTicket = ({ match, tracks, artists }: Props) => {
                 )}
               </div>
 
-              {/* FOOTER */}
-              <div className="mt-1 pt-1.5 flex items-end gap-2 border-t border-dashed border-current/20">
+              {/* FOOTER - Added userName back */}
+              <div className="mt-auto pt-2 flex items-end gap-2 border-t border-dashed border-current/20 opacity-80">
                   <div className="flex-1 flex flex-col justify-end overflow-hidden">
                      <span className="text-[6px] uppercase tracking-widest opacity-40">Film Title</span>
                      <span className="text-[10px] font-black uppercase truncate leading-none">{match.title}</span>
                   </div>
                   
                   {/* Barcode */}
-                  <div className="h-5 w-24 opacity-60 shrink-0">
+                  <div className="h-5 w-16 opacity-60 shrink-0">
                     <Barcode />
                   </div>
 
-                  <div className="flex flex-col items-end shrink-0">
-                     <span className="text-[6px] uppercase tracking-widest opacity-40">Seat</span>
-                     <span className="text-[10px] font-mono font-bold leading-none">A-12</span>
+                  <div className="flex flex-col items-end shrink-0 max-w-[60px]">
+                     <span className="text-[6px] uppercase tracking-widest opacity-40">Issued To</span>
+                     <span className="text-[8px] font-mono font-bold leading-none truncate w-full text-right">{userName}</span>
                   </div>
               </div>
 

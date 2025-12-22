@@ -15,39 +15,43 @@ type Theme = 'classic' | 'midnight' | 'retro' | 'blueprint';
 
 const THEME_CONFIG: Record<
   Theme,
-  { bgHex: string; text: string; accent: string; font: string; border: string; highlight: string }
+  { bgHex: string; text: string; accent: string; font: string; border: string; highlight: string; panel: string }
 > = {
   classic: { 
-    bgHex: '#e8e8e3', 
+    bgHex: '#e6e6e6', 
     text: 'text-stone-900', 
     accent: 'text-red-700', 
     font: 'font-mono', 
     border: 'border-stone-400',
-    highlight: 'bg-stone-900 text-stone-100'
+    highlight: 'bg-stone-900 text-stone-100',
+    panel: 'bg-stone-200'
   },
   midnight: { 
-    bgHex: '#0a0a0a', 
-    text: 'text-stone-200', 
+    bgHex: '#080808', 
+    text: 'text-stone-100', 
     accent: 'text-cyan-400', 
     font: 'font-sans', 
-    border: 'border-stone-800',
-    highlight: 'bg-white text-black'
+    border: 'border-stone-700',
+    highlight: 'bg-white text-black',
+    panel: 'bg-stone-900'
   },
   retro: { 
-    bgHex: '#fdf6e3', 
-    text: 'text-amber-900', 
+    bgHex: '#f4ecd8', 
+    text: 'text-amber-950', 
     accent: 'text-orange-700', 
     font: 'font-serif', 
-    border: 'border-amber-900/20',
-    highlight: 'bg-amber-900 text-amber-50'
+    border: 'border-amber-900/30',
+    highlight: 'bg-amber-900 text-amber-50',
+    panel: 'bg-amber-100'
   },
   blueprint: { 
-    bgHex: '#1e3a8a', 
-    text: 'text-blue-100', 
+    bgHex: '#172554', 
+    text: 'text-blue-50', 
     accent: 'text-yellow-400', 
     font: 'font-mono', 
-    border: 'border-blue-400/30',
-    highlight: 'bg-yellow-400 text-blue-900'
+    border: 'border-blue-400/40',
+    highlight: 'bg-yellow-400 text-blue-950',
+    panel: 'bg-blue-900/50'
   },
 };
 
@@ -79,19 +83,18 @@ const CorsImg = ({ src, className, alt }: { src: string | undefined; className?:
     return () => { isMounted = false; };
   }, [src]);
 
-  if (!imgData) return <div className={`${className} bg-stone-800 animate-pulse`} />;
+  if (!imgData) return <div className={`${className} bg-white/10 animate-pulse`} />;
   return <img src={imgData} alt={alt} className={className} />;
 };
 
-// Simple Barcode Generator Visual
 const Barcode = ({ className }: { className?: string }) => (
   <div className={`flex items-stretch h-full w-full gap-[2px] ${className}`}>
-    {[...Array(25)].map((_, i) => (
+    {[...Array(28)].map((_, i) => (
       <div 
         key={i} 
-        className="bg-current opacity-80" 
+        className="bg-current opacity-90" 
         style={{ 
-          width: Math.random() > 0.6 ? '4px' : Math.random() > 0.3 ? '2px' : '1px',
+          width: Math.random() > 0.6 ? '3px' : Math.random() > 0.3 ? '2px' : '1px',
           flexGrow: Math.random() > 0.8 ? 1 : 0
         }} 
       />
@@ -99,7 +102,7 @@ const Barcode = ({ className }: { className?: string }) => (
   </div>
 );
 
-export const MovieTicket = ({ match, tracks, artists, userName }: Props) => {
+export const MovieTicket = ({ match, tracks, artists }: Props) => {
   const [activeTab, setActiveTab] = useState<Tab>('soundtrack');
   const [currentTheme, setCurrentTheme] = useState<Theme>('classic');
   const [isDownloading, setIsDownloading] = useState(false);
@@ -121,22 +124,23 @@ export const MovieTicket = ({ match, tracks, artists, userName }: Props) => {
     if (!ticketRef.current) return;
     setIsDownloading(true);
     try {
-      await new Promise((r) => setTimeout(r, 150));
+      await new Promise((r) => setTimeout(r, 200)); // slight delay for render
       const dataUrl = await toPng(ticketRef.current, {
         cacheBust: true,
         pixelRatio: 3,
-        backgroundColor: theme.bgHex,
+        backgroundColor: 'transparent', // IMPORTANT for mask to work in PNG
       });
       const link = document.createElement('a');
-      link.download = `Sinetify_TICKET_${match.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.png`;
+      link.download = `Sinetify_${match.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.png`;
       link.href = dataUrl;
       link.click();
-    } catch {
-      alert('Download failed. Please screenshot!');
+    } catch (e) {
+      console.error(e);
+      alert('Download failed. Try screenshotting!');
     } finally {
       setIsDownloading(false);
     }
-  }, [match.title, theme.bgHex]);
+  }, [match.title]);
 
   return (
     <div className="w-full flex flex-col items-center gap-6 animate-in slide-in-from-bottom-8 duration-700 font-sans">
@@ -164,135 +168,159 @@ export const MovieTicket = ({ match, tracks, artists, userName }: Props) => {
       </div>
 
       {/* --- TICKET CONTAINER --- */}
-      <div
-        ref={ticketRef}
-        className={`relative aspect-[9/16] w-full max-w-[400px] shadow-2xl overflow-hidden flex flex-col ${theme.text} ${theme.font}`}
-        style={{ backgroundColor: theme.bgHex }}
-      >
-        {/* 1. BACKGROUND POSTER (Top 70%) */}
-        <div className="absolute top-0 left-0 w-full h-[70%] z-0">
-          <CorsImg
-            src={match.posterPath}
-            alt="Poster"
-            className="w-full h-full object-cover object-top opacity-90"
-          />
-        </div>
-
-        {/* 2. GRADIENT OVERLAY & TEXTURE */}
-        {/* Starts fading at 50% (transparent), solid by 75% */}
-        <div 
-          className="absolute inset-0 z-10 pointer-events-none"
-          style={{
-            background: `linear-gradient(to bottom, transparent 0%, transparent 45%, ${theme.bgHex} 75%, ${theme.bgHex} 100%)`
+      <div className="relative drop-shadow-2xl">
+        <div
+          ref={ticketRef}
+          className={`relative aspect-[9/16] w-full max-w-[400px] overflow-hidden flex flex-col ${theme.text} ${theme.font}`}
+          style={{ 
+            backgroundColor: theme.bgHex,
+            // CSS MASKING for the notches (The Half Circles)
+            maskImage: `radial-gradient(circle at 0% 64%, transparent 14px, black 15px), 
+                        radial-gradient(circle at 100% 64%, transparent 14px, black 15px)`,
+            WebkitMaskImage: `radial-gradient(circle at 0% 64%, transparent 14px, black 15px), 
+                              radial-gradient(circle at 100% 64%, transparent 14px, black 15px)`
           }}
-        />
-        
-        {/* Optional Noise/Grain Texture for "Paper" feel */}
-        <div className="absolute inset-0 z-20 opacity-[0.03] pointer-events-none mix-blend-multiply" 
+        >
+          {/* --- POSTER BACKGROUND (Top 75%) --- */}
+          <div className="absolute top-0 left-0 w-full h-[75%] z-0">
+             <CorsImg
+               src={match.posterPath}
+               alt="Poster"
+               className="w-full h-full object-cover object-top"
+             />
+             {/* Gradient Fade to connect poster to ticket body */}
+             <div 
+               className="absolute inset-0"
+               style={{
+                 background: `linear-gradient(to bottom, transparent 40%, ${theme.bgHex} 85%, ${theme.bgHex} 100%)`
+               }}
+             />
+          </div>
+
+          {/* Paper Texture Overlay */}
+          <div className="absolute inset-0 z-10 opacity-[0.05] pointer-events-none mix-blend-multiply" 
              style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }} 
-        />
+          />
 
-        {/* 3. CONTENT LAYER */}
-        <div className="relative z-30 flex flex-col h-full">
-          
-          {/* Top Half (Empty to show poster) */}
-          <div className="h-[55%]" />
+          {/* --- CONTENT LAYOUT --- */}
+          <div className="relative z-20 flex flex-col h-full">
 
-          {/* Bottom Half (Data) */}
-          <div className="flex-1 flex flex-col px-6 pb-6 pt-2">
-            
-            {/* Header Info */}
-            <div className="mb-4 text-center">
-              <span className={`inline-block px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.2em] mb-2 border ${theme.border} rounded-sm opacity-70`}>
-                Now Showing
-              </span>
-              <h1 className="text-4xl font-black uppercase leading-[0.9] tracking-tighter mb-2 line-clamp-2">
-                {match.title}
-              </h1>
-              <div className="flex items-center justify-center gap-3 text-[10px] font-bold uppercase tracking-wider opacity-60">
-                 <span>{match.genre}</span>
-                 <span>•</span>
-                 <span>Admit One</span>
-              </div>
-            </div>
-
-            {/* Dotted Line */}
-            <div className={`w-full border-t-2 border-dashed ${theme.border} opacity-50 my-2`} />
-
-            {/* Selection Tabs */}
-            <div className="flex justify-between mb-4 px-2">
-              <button onClick={() => setActiveTab('soundtrack')} className={`p-2 transition hover:opacity-100 ${activeTab === 'soundtrack' ? 'opacity-100 scale-110' : 'opacity-40 grayscale'}`}>
-                 <Disc size={18} />
-              </button>
-              <button onClick={() => setActiveTab('cast')} className={`p-2 transition hover:opacity-100 ${activeTab === 'cast' ? 'opacity-100 scale-110' : 'opacity-40 grayscale'}`}>
-                 <Users size={18} />
-              </button>
-              <button onClick={() => setActiveTab('genres')} className={`p-2 transition hover:opacity-100 ${activeTab === 'genres' ? 'opacity-100 scale-110' : 'opacity-40 grayscale'}`}>
-                 <Tag size={18} />
-              </button>
-            </div>
-
-            {/* Dynamic Content Area */}
-            <div className="flex-1 overflow-hidden relative">
-              
-              {activeTab === 'soundtrack' && (
-                 <div className="space-y-2 h-full">
-                    {tracks.slice(0, 5).map((t, i) => (
-                      <div key={i} className="flex items-baseline justify-between w-full text-[11px] font-medium border-b border-current/10 pb-1">
-                        <div className="flex items-center gap-2 truncate max-w-[70%]">
-                           <span className={`text-[9px] font-bold opacity-40 w-3`}>{i + 1}</span>
-                           <span className="uppercase tracking-tight truncate">{t.name}</span>
-                        </div>
-                        <span className="text-[9px] opacity-50 truncate max-w-[25%]">{t.artists[0].name}</span>
-                      </div>
-                    ))}
+            {/* TOP BADGES (Over Poster) */}
+            <div className="h-[64%] p-5 flex flex-col justify-between items-start">
+               {/* Fixed visibility: Solid pill for Now Showing */}
+               <div className="self-center mt-4">
+                 <div className={`px-3 py-1 ${isDark ? 'bg-white text-black' : 'bg-black text-white'} text-[10px] font-black uppercase tracking-[0.25em] shadow-lg`}>
+                    Now Showing
                  </div>
-              )}
+               </div>
+               
+               {/* Spacer */}
+               <div className="flex-1" />
 
-              {activeTab === 'cast' && (
-                <div className="grid grid-cols-4 gap-2">
-                   {artists.slice(0, 8).map((a, i) => (
-                      <div key={i} className="flex flex-col items-center gap-1">
-                        <div className={`w-10 h-10 rounded-sm overflow-hidden grayscale contrast-125 ${isDark ? 'bg-white/10' : 'bg-black/10'}`}>
-                           {a.images?.[0]?.url ? (
-                             <CorsImg src={a.images[0].url} className="w-full h-full object-cover" />
-                           ) : (
-                             <div className="w-full h-full flex items-center justify-center text-[8px] font-bold opacity-30">N/A</div>
-                           )}
+               {/* Genre / Admit One (High Contrast Pills) */}
+               <div className="w-full flex justify-between items-end pb-4">
+                  <div className={`px-2 py-1 ${theme.panel} backdrop-blur-md border ${theme.border} rounded-sm shadow-sm`}>
+                     <p className="text-[9px] font-bold uppercase tracking-wider opacity-80 leading-none">
+                        {match.genre.split('/')[0]}
+                     </p>
+                  </div>
+                  
+                  <div className={`px-2 py-1 ${theme.highlight} font-mono text-[10px] font-bold uppercase tracking-tighter -rotate-3 shadow-lg`}>
+                     ADMIT ONE
+                  </div>
+               </div>
+            </div>
+
+            {/* --- PERFORATION LINE --- */}
+            {/* Exactly at 64% to match the mask notches */}
+            <div className="relative w-full h-[2px] flex items-center justify-center">
+               {/* The Line */}
+               <div className={`w-[86%] border-t-[3px] border-dashed ${theme.border} opacity-80`} />
+            </div>
+
+            {/* --- TICKET STUB (Data Area) --- */}
+            <div className="flex-1 flex flex-col px-6 pt-2 pb-5 bg-gradient-to-b from-transparent to-black/5">
+              
+              {/* TABS */}
+              <div className="flex justify-between items-center mb-3 border-b border-current/10 pb-2">
+                 <div className="flex gap-4">
+                    <button onClick={() => setActiveTab('soundtrack')} className={`transition hover:opacity-100 ${activeTab === 'soundtrack' ? 'opacity-100' : 'opacity-40'}`}>
+                      <Disc size={16} />
+                    </button>
+                    <button onClick={() => setActiveTab('cast')} className={`transition hover:opacity-100 ${activeTab === 'cast' ? 'opacity-100' : 'opacity-40'}`}>
+                      <Users size={16} />
+                    </button>
+                    <button onClick={() => setActiveTab('genres')} className={`transition hover:opacity-100 ${activeTab === 'genres' ? 'opacity-100' : 'opacity-40'}`}>
+                      <Tag size={16} />
+                    </button>
+                 </div>
+                 {/* Tiny Date Stamp */}
+                 <span className="text-[8px] font-mono opacity-50">{new Date().toLocaleDateString()}</span>
+              </div>
+
+              {/* LIST CONTENT */}
+              <div className="flex-1 overflow-hidden">
+                {activeTab === 'soundtrack' && (
+                    <div className="flex flex-col gap-2 h-full justify-center">
+                      {tracks.slice(0, 4).map((t, i) => (
+                        <div key={i} className="flex items-center justify-between text-[11px] font-medium">
+                          <div className="flex items-center gap-3 truncate max-w-[70%]">
+                              <span className="font-mono text-[9px] opacity-40">0{i + 1}</span>
+                              <span className="uppercase tracking-tight truncate">{t.name}</span>
+                          </div>
+                          <span className="text-[9px] opacity-50 truncate max-w-[25%] text-right">{t.artists[0].name}</span>
                         </div>
-                        <span className="text-[8px] uppercase font-bold truncate w-full text-center opacity-70">{a.name.split(' ')[0]}</span>
+                      ))}
+                    </div>
+                )}
+                
+                {activeTab === 'cast' && (
+                    <div className="grid grid-cols-4 gap-2 pt-1">
+                      {artists.slice(0, 8).map((a, i) => (
+                          <div key={i} className="flex flex-col items-center">
+                            <div className={`w-8 h-8 rounded-full overflow-hidden mb-1 grayscale ${theme.panel}`}>
+                              {a.images?.[0]?.url && <CorsImg src={a.images[0].url} className="w-full h-full object-cover" />}
+                            </div>
+                            <span className="text-[7px] font-bold uppercase truncate max-w-full">{a.name.split(' ')[0]}</span>
+                          </div>
+                      ))}
+                    </div>
+                )}
+
+                {activeTab === 'genres' && (
+                  <div className="flex flex-wrap gap-2 content-center h-full">
+                    {topGenres.map((g, i) => (
+                      <span key={i} className={`px-2 py-1 text-[9px] font-bold uppercase border ${theme.border} opacity-70`}>
+                        {g}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* FOOTER METADATA (Replaces Title Header) */}
+              <div className="mt-auto pt-3 flex flex-col gap-1">
+                  <div className="flex justify-between items-end">
+                      <div className="flex flex-col max-w-[70%]">
+                         <span className="text-[7px] uppercase tracking-widest opacity-40">Film Title</span>
+                         <span className="text-[10px] font-bold uppercase truncate leading-none">{match.title}</span>
                       </div>
-                   ))}
-                </div>
-              )}
-
-              {activeTab === 'genres' && (
-                <div className="flex flex-wrap gap-2 content-start justify-center pt-2">
-                  {topGenres.map((g, i) => (
-                    <span key={i} className={`px-3 py-1 text-[10px] font-bold uppercase border ${theme.border} ${i === 0 ? theme.highlight : 'opacity-70'}`}>
-                      {g}
-                    </span>
-                  ))}
-                </div>
-              )}
+                      <div className="text-right">
+                         <span className="text-[7px] uppercase tracking-widest opacity-40 block">Seat</span>
+                         <span className="text-[10px] font-mono font-bold leading-none">A-12</span>
+                      </div>
+                  </div>
+                  
+                  {/* Barcode */}
+                  <div className="h-6 w-full opacity-60 mt-1">
+                    <Barcode />
+                  </div>
+                  <div className="text-[6px] text-center uppercase tracking-[0.3em] opacity-30 mt-1">
+                    Sinetify Ticket System • Non-Refundable
+                  </div>
+              </div>
 
             </div>
-
-            {/* Footer / Barcode Area */}
-            <div className="mt-auto pt-4 flex flex-col gap-2">
-               <div className="flex justify-between items-end opacity-50 text-[9px] font-mono uppercase">
-                  <span>Issued: {new Date().toLocaleDateString()}</span>
-                  <span>{userName}</span>
-               </div>
-               <div className="h-8 w-full opacity-80">
-                 <Barcode />
-               </div>
-               <div className="flex justify-between text-[7px] uppercase font-bold tracking-[0.2em] opacity-40 leading-none">
-                  <span>Sinetify Ticket System</span>
-                  <span>Row A • Seat 12</span>
-               </div>
-            </div>
-
           </div>
         </div>
       </div>

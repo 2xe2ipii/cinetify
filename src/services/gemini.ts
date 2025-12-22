@@ -19,11 +19,9 @@ const responseSchema = {
   required: ["title", "genre", "quote"],
 };
 
-const CACHE_PREFIX = "plot_twist_gemini_v2:"; // Changed prefix to invalidate old cache
+const CACHE_PREFIX = "plot_twist_gemini_v2:"; 
 const CACHE_TTL_MS = 1000 * 60 * 60 * 12; // 12 hours
 const inflight = new Map<string, Promise<MovieMatch>>();
-
-// const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 function hashString(s: string) {
   let h = 2166136261;
@@ -85,7 +83,7 @@ async function getWorkingModelName() {
       return best.name.replace("models/", "");
     }
   } catch (e) {
-    console.warn("Model auto-detect failed.", e);
+    // Silently fail model detection and fallback
   }
   return "gemini-1.5-flash"; 
 }
@@ -103,7 +101,6 @@ export async function matchMovieWithAI(tracks: string[], genres: string[]): Prom
   const job = (async () => {
     const modelName = await getWorkingModelName();
 
-    // UPDATED PROMPT
     const prompt = [
       "You are a cinema archivist.",
       "Analyze the playlist vibe and pick ONE movie that matches strictly on atmosphere/mood.",
@@ -143,7 +140,7 @@ export async function matchMovieWithAI(tracks: string[], genres: string[]): Prom
       return finalData;
 
     } catch (e: any) {
-      console.error(`Gemini Fatal Error:`, e);
+      // Error is re-thrown for UI handling, but not logged to console
       throw new Error(`AI Request Failed: ${e.message}`);
     }
   })();

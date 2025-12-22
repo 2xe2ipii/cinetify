@@ -18,7 +18,7 @@ const THEME_CONFIG: Record<
   { bgHex: string; text: string; accent: string; font: string; border: string }
 > = {
   classic: { bgHex: '#f4f4f0', text: 'text-stone-900', accent: 'text-red-600', font: 'font-mono', border: 'border-stone-300' },
-  midnight: { bgHex: '#000000', text: 'text-white', accent: 'text-cyan-400', font: 'font-sans', border: 'border-stone-800' },
+  midnight: { bgHex: '#050505', text: 'text-white', accent: 'text-cyan-400', font: 'font-sans', border: 'border-stone-800' },
   retro: { bgHex: '#fdf6e3', text: 'text-amber-900', accent: 'text-orange-600', font: 'font-serif', border: 'border-amber-200' },
   blueprint: { bgHex: '#172554', text: 'text-blue-50', accent: 'text-yellow-400', font: 'font-mono', border: 'border-blue-700' },
 };
@@ -97,11 +97,8 @@ export const MovieTicket = ({ match, tracks, artists, userName }: Props) => {
     setIsDownloading(true);
 
     try {
-      // Give the browser a beat to finish painting / image decoding.
       await new Promise((r) => setTimeout(r, 120));
 
-      // IMPORTANT: Do NOT export with a transparent canvas.
-      // PNG transparency often shows as black in some viewers / IG workflows.
       const dataUrl = await toPng(ticketRef.current, {
         cacheBust: true,
         pixelRatio: 3,
@@ -154,66 +151,54 @@ export const MovieTicket = ({ match, tracks, artists, userName }: Props) => {
         className={`relative aspect-[9/16] w-full max-w-[420px] shadow-2xl overflow-hidden flex flex-col rounded-[24px] ${theme.text} ${theme.font}`}
         style={{ backgroundColor: theme.bgHex }}
       >
-        {/* === POSTER STAGE (45%) === */}
-        <div className="h-[45%] relative overflow-hidden">
-          {/* Blurred backdrop uses the poster so nothing looks empty/awkward */}
-          <CorsImg
-            src={match.posterPath}
-            alt="Poster backdrop"
-            className="absolute inset-0 w-full h-full object-cover scale-110 blur-[2px] brightness-75"
-          />
-
-          {/* Blend into the ticket color (so bottom reads clean) */}
-          <div
-            className="absolute inset-0"
-            style={{
-              background: `linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.45) 55%, ${theme.bgHex} 100%)`,
-            }}
-          />
-
-          {/* Actual poster shown as a contained card (no awkward cropping) */}
-          <div className="absolute inset-0 p-6 pb-8 flex items-center justify-center">
-            <div
-              className={`w-full h-full rounded-[18px] overflow-hidden shadow-2xl ring-1 ${
-                isDark ? 'ring-white/10' : 'ring-black/10'
-              }`}
-            >
-              <CorsImg src={match.posterPath} alt="Poster" className="w-full h-full object-contain bg-black/20" />
-            </div>
-          </div>
+        {/* === POSTER SECTION (Top 38% - Full Bleed) === */}
+        <div className="h-[38%] relative w-full bg-black">
+           <CorsImg
+              src={match.posterPath}
+              alt="Poster"
+              // Object-top usually captures faces better for movie posters
+              className="w-full h-full object-cover object-top opacity-90"
+            />
+            
+            {/* The Blend: Heavy gradient at the bottom to merge into ticket */}
+            <div 
+              className="absolute inset-0"
+              style={{
+                background: `linear-gradient(to bottom, transparent 40%, ${theme.bgHex} 100%)`
+              }}
+            />
         </div>
 
-        {/* === DATA STUB (55%) === */}
-        <div className="flex-1 relative z-10 flex flex-col px-6 pb-4 pt-2">
-          {/* Perforation */}
-          <div className="w-full border-t-2 border-dashed border-current/25 mb-3 relative">
-            <div className="absolute -left-9 -top-3 w-6 h-6 rounded-full" style={{ backgroundColor: theme.bgHex }} />
-            <div className="absolute -right-9 -top-3 w-6 h-6 rounded-full" style={{ backgroundColor: theme.bgHex }} />
-          </div>
-
-          {/* Header */}
-          <div className="mb-2 flex justify-between items-start">
-            <div className="w-[78%]">
-              <h1 className="text-[28px] font-black uppercase tracking-tight leading-[0.95] line-clamp-2">
-                {match.title}
-              </h1>
-              <div className="mt-1 flex items-center gap-2">
-                <span className={`inline-block text-[10px] font-bold uppercase tracking-widest ${theme.accent}`}>
-                  {match.genre}
-                </span>
-              </div>
-
-              {/* Keep quote minimal so the list stays the focus */}
-              {match.quote ? (
-                <p className="mt-1 text-[11px] italic opacity-70 leading-snug line-clamp-2">“{match.quote}”</p>
-              ) : null}
-            </div>
-
-            <div className="border border-current/30 rounded px-2 py-1 text-center opacity-60">
-              <div className="text-[8px] uppercase font-black leading-none">ADMIT</div>
-              <div className="text-[8px] uppercase font-black leading-none">ONE</div>
+        {/* === DATA STUB (Remaining 62%) === */}
+        <div className="flex-1 relative z-10 flex flex-col px-6 pb-6 -mt-4">
+          
+          {/* Title Header - Floating slightly over the fade */}
+          <div className="mb-4">
+            <h1 className="text-[32px] font-black uppercase tracking-tight leading-[0.9] drop-shadow-sm line-clamp-2 mb-1">
+              {match.title}
+            </h1>
+            <div className="flex justify-between items-end">
+               <div>
+                  <span className={`inline-block text-[10px] font-bold uppercase tracking-widest ${theme.accent}`}>
+                    {match.genre}
+                  </span>
+                  {match.quote && (
+                    <p className="mt-1 text-[11px] italic opacity-60 leading-tight max-w-[240px] line-clamp-2">
+                       "{match.quote}"
+                    </p>
+                  )}
+               </div>
+               
+               {/* Stamp */}
+               <div className="border border-current/30 rounded px-2 py-1 text-center opacity-40 rotate-[-8deg]">
+                  <div className="text-[7px] uppercase font-black leading-none">ADMIT</div>
+                  <div className="text-[7px] uppercase font-black leading-none">ONE</div>
+               </div>
             </div>
           </div>
+
+          {/* Perforation Line Separator */}
+          <div className="w-full border-t-2 border-dashed border-current/20 mb-3 relative" />
 
           {/* Navigation */}
           <div className="flex w-full border-b border-current/10 text-[10px] font-bold uppercase tracking-widest mb-3">
@@ -243,19 +228,19 @@ export const MovieTicket = ({ match, tracks, artists, userName }: Props) => {
             </button>
           </div>
 
-          {/* Data List */}
+          {/* List Content */}
           <div className="flex-1 overflow-hidden">
             {activeTab === 'soundtrack' && (
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-[6px] h-full">
                 {tracks.slice(0, 10).map((t, i) => (
-                  <div key={i} className="flex items-center justify-between w-full text-[12px] leading-tight">
-                    <div className="flex items-center gap-2 overflow-hidden pr-2 min-w-0">
-                      <span className="font-mono opacity-40 text-[10px] w-6 flex-shrink-0">
-                        {(i + 1).toString().padStart(2, '0')}
+                  <div key={i} className="flex items-center justify-between w-full text-[12px] leading-none">
+                    <div className="flex items-center gap-3 overflow-hidden pr-2 min-w-0">
+                      <span className="font-mono opacity-30 text-[10px] w-4 text-right flex-shrink-0">
+                        {i + 1}
                       </span>
-                      <span className="font-extrabold truncate">{t?.name}</span>
+                      <span className="font-bold truncate opacity-90">{t?.name}</span>
                     </div>
-                    <span className="opacity-60 text-[11px] truncate max-w-[42%] text-right">
+                    <span className="opacity-50 text-[10px] truncate max-w-[35%] text-right">
                       {t?.artists?.[0]?.name ?? ''}
                     </span>
                   </div>
@@ -264,11 +249,11 @@ export const MovieTicket = ({ match, tracks, artists, userName }: Props) => {
             )}
 
             {activeTab === 'cast' && (
-              <div className="grid grid-cols-2 gap-2 content-start">
+              <div className="grid grid-cols-2 gap-3 content-start">
                 {artists.slice(0, 8).map((a, i) => (
                   <div key={i} className={`flex items-center gap-2 ${isDark ? 'bg-white/5' : 'bg-black/5'} p-2 rounded-md`}>
                     {a.images?.[0]?.url && (
-                      <CorsImg src={a.images[0].url} className="w-7 h-7 rounded-full grayscale object-cover" alt={a.name} />
+                      <CorsImg src={a.images[0].url} className="w-8 h-8 rounded-full grayscale object-cover" alt={a.name} />
                     )}
                     <span className="text-[10px] font-bold uppercase truncate">{a.name}</span>
                   </div>
@@ -277,11 +262,11 @@ export const MovieTicket = ({ match, tracks, artists, userName }: Props) => {
             )}
 
             {activeTab === 'genres' && (
-              <div className="flex flex-wrap gap-2 content-start">
+              <div className="flex flex-wrap gap-2 content-start pt-2">
                 {topGenres.map((g, i) => (
                   <span
                     key={i}
-                    className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider border border-current/20 rounded-sm"
+                    className="px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider border border-current/20 rounded-md"
                   >
                     {g}
                   </span>
@@ -296,8 +281,8 @@ export const MovieTicket = ({ match, tracks, artists, userName }: Props) => {
               <span className="text-[8px] uppercase tracking-widest font-bold">Issued To</span>
               <span className="text-[8px] font-mono">{userName}</span>
             </div>
-            <div className="h-4 flex items-stretch gap-[1px]">
-              {[...Array(25)].map((_, i) => (
+            <div className="h-5 flex items-stretch gap-[2px]">
+              {[...Array(20)].map((_, i) => (
                 <div key={i} className="bg-current" style={{ width: Math.random() > 0.5 ? '2px' : '1px' }} />
               ))}
             </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Download, Ticket as TicketIcon, Loader2 } from 'lucide-react';
+import { Quote, Download, Ticket as TicketIcon, Loader2 } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import type { MovieMatch } from '../types';
 
@@ -13,12 +13,12 @@ interface Props {
 type Tab = 'soundtrack' | 'cast' | 'themes';
 type Theme = 'classic' | 'midnight' | 'retro' | 'blueprint';
 
-// THEMES now control the Gradient Color (fade) instead of paper color
-const THEMES: Record<Theme, { fade: string; text: string; accent: string; font: string; border: string }> = {
-  classic: { fade: 'from-stone-950 via-stone-950/90', text: 'text-stone-100', accent: 'text-red-500', font: 'font-mono', border: 'border-white/20' },
-  midnight: { fade: 'from-black via-black/90', text: 'text-white', accent: 'text-cyan-400', font: 'font-sans', border: 'border-stone-800' },
-  retro: { fade: 'from-[#2a1b0a] via-[#2a1b0a]/90', text: 'text-orange-50', accent: 'text-orange-400', font: 'font-serif', border: 'border-orange-500/20' },
-  blueprint: { fade: 'from-blue-950 via-blue-950/90', text: 'text-blue-50', accent: 'text-yellow-400', font: 'font-mono', border: 'border-blue-500/30' },
+// THEMES: 'bg' is the color of the bottom stub. 'fade' must match 'bg' for the blend to work.
+const THEMES: Record<Theme, { bg: string; fade: string; text: string; accent: string; font: string; border: string }> = {
+  classic: { bg: 'bg-[#f4f4f0]', fade: 'from-[#f4f4f0]', text: 'text-stone-900', accent: 'text-red-600', font: 'font-mono', border: 'border-stone-300' },
+  midnight: { bg: 'bg-black', fade: 'from-black', text: 'text-white', accent: 'text-cyan-400', font: 'font-sans', border: 'border-stone-800' },
+  retro: { bg: 'bg-[#fdf6e3]', fade: 'from-[#fdf6e3]', text: 'text-amber-900', accent: 'text-orange-600', font: 'font-serif', border: 'border-amber-200' },
+  blueprint: { bg: 'bg-blue-900', fade: 'from-blue-900', text: 'text-blue-50', accent: 'text-yellow-400', font: 'font-mono', border: 'border-blue-700' },
 };
 
 const CorsImg = ({ src, className, alt }: { src: string | undefined, className?: string, alt?: string }) => {
@@ -27,7 +27,6 @@ const CorsImg = ({ src, className, alt }: { src: string | undefined, className?:
   useEffect(() => {
     if (!src) return;
     let isMounted = true;
-
     const load = async () => {
       try {
         const response = await fetch(src);
@@ -36,6 +35,7 @@ const CorsImg = ({ src, className, alt }: { src: string | undefined, className?:
         reader.onloadend = () => { if (isMounted) setImgData(reader.result as string); };
         reader.readAsDataURL(blob);
       } catch {
+        // Fallback proxy
         try {
           const proxy = `https://api.allorigins.win/raw?url=${encodeURIComponent(src)}`;
           const res = await fetch(proxy);
@@ -43,7 +43,7 @@ const CorsImg = ({ src, className, alt }: { src: string | undefined, className?:
           const reader = new FileReader();
           reader.onloadend = () => { if (isMounted) setImgData(reader.result as string); };
           reader.readAsDataURL(blob);
-        } catch (e) { console.error("Image load failed", e); }
+        } catch (e) { console.error(e); }
       }
     };
     load();
@@ -69,30 +69,29 @@ export const MovieTicket = ({ match, tracks, artists, userName }: Props) => {
   const handleDownload = useCallback(async () => {
     if (!ticketRef.current) return;
     setIsDownloading(true);
-
     try {
       await new Promise(r => setTimeout(r, 100));
       const dataUrl = await toPng(ticketRef.current, {
         cacheBust: true, pixelRatio: 3, backgroundColor: 'transparent', style: { transform: 'none' }
       });
       const link = document.createElement('a');
-      link.download = `Sinetify_Story_${match.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.png`;
+      link.download = `Sinetify_${match.title.replace(/[^a-z0-9]/gi, '_')}.png`;
       link.href = dataUrl;
       link.click();
-    } catch (err) { alert("Download failed. Try screenshotting!"); } finally { setIsDownloading(false); }
+    } catch (err) { alert("Try screenshotting instead!"); } finally { setIsDownloading(false); }
   }, [match.title]);
 
   return (
     <div className="w-full flex flex-col items-center gap-6 animate-in slide-in-from-bottom-8 duration-700">
       
-      {/* THEME SELECTOR */}
+      {/* TOOLBAR */}
       <div className="flex gap-3 p-3 bg-stone-900/90 backdrop-blur rounded-full border border-stone-800 shadow-2xl z-50">
         {(Object.keys(THEMES) as Theme[]).map((t) => (
           <button
             key={t}
             onClick={() => setCurrentTheme(t)}
             className={`w-6 h-6 rounded-full border-2 transition-all ${currentTheme === t ? 'border-white scale-110' : 'border-transparent opacity-50 hover:opacity-100'}`}
-            style={{ backgroundColor: t === 'classic' ? '#333' : t === 'midnight' ? '#000' : t === 'retro' ? '#4a3b2a' : '#172554' }}
+            style={{ backgroundColor: t === 'classic' ? '#f4f4f0' : t === 'midnight' ? '#000' : t === 'retro' ? '#fdf6e3' : '#1e3a8a' }}
           />
         ))}
         <div className="w-px h-6 bg-stone-700 mx-1" />
@@ -101,117 +100,121 @@ export const MovieTicket = ({ match, tracks, artists, userName }: Props) => {
         </button>
       </div>
 
-      {/* --- THE TICKET (9:16 Aspect Ratio) --- */}
+      {/* --- THE TICKET (Fixed 9:16 Ratio) --- */}
       <div 
         ref={ticketRef}
-        className={`relative aspect-[9/16] w-full max-w-[400px] shadow-2xl overflow-hidden rounded-[32px] bg-black group select-none`}
+        className={`relative aspect-[9/16] w-full max-w-[380px] shadow-2xl overflow-hidden flex flex-col rounded-[24px] ${theme.bg} ${theme.text} ${theme.font}`}
       >
-        {/* 1. BACKGROUND LAYER (Full Poster) */}
-        <div className="absolute inset-0 z-0">
+        
+        {/* === TOP SECTION: POSTER (3/5 Height) === */}
+        <div className="h-[58%] relative bg-black overflow-hidden z-0">
           <CorsImg 
             src={match.posterPath} 
             alt="Poster"
-            className="w-full h-full object-cover opacity-100" 
+            className="w-full h-full object-cover object-top" 
           />
+          
+          {/* THE BLEND: Gradient matches the ticket body color exactly */}
+          <div className={`absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t ${theme.fade} to-transparent`} />
+          
+          {/* Overlay Text inside the gradient area */}
+          <div className="absolute bottom-4 left-6 right-6 z-10">
+             <div className="flex items-center gap-2 opacity-70 mb-2">
+                 <Quote size={12} />
+                 <span className="text-[9px] uppercase tracking-widest font-bold">Vibe Check</span>
+             </div>
+             <p className="text-lg md:text-xl font-serif italic leading-tight drop-shadow-md opacity-90">
+                "{match.quote}"
+             </p>
+          </div>
         </div>
 
-        {/* 2. GRADIENT SCRIM (The Fade) */}
-        <div className={`absolute inset-0 z-10 bg-gradient-to-t ${theme.fade} to-transparent to-50%`} />
-
-        {/* 3. CONTENT LAYER */}
-        <div className={`relative z-20 h-full flex flex-col justify-end p-6 ${theme.text} ${theme.font}`}>
+        {/* === BOTTOM SECTION: DATA STUB (2/5 Height) === */}
+        <div className="flex-1 relative z-10 flex flex-col px-6 pb-6 pt-2">
           
-          {/* Top Section (Quote floating in the visual space) */}
-          <div className="absolute top-8 left-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-             <p className="text-white/90 font-serif italic text-lg drop-shadow-md leading-tight text-center">"{match.quote}"</p>
+          {/* Visual Divider: Perforation Line */}
+          <div className="w-full border-t-2 border-dashed border-current/20 mb-4 relative">
+             {/* Side Notches (The "Ticket" Look) */}
+             <div className="absolute -left-9 -top-3 w-6 h-6 rounded-full bg-stone-950" /> 
+             <div className="absolute -right-9 -top-3 w-6 h-6 rounded-full bg-stone-950" />
           </div>
 
-          {/* Ticket Info (Bottom) */}
-          <div className="flex flex-col gap-4">
-            
-            {/* Header */}
-            <div className={`border-b ${theme.border} pb-4`}>
-              <div className="flex justify-between items-start mb-1">
-                <div className="flex items-center gap-2 opacity-60 text-[10px] uppercase tracking-widest font-bold">
-                  <TicketIcon size={12} />
-                  <span>Admit One</span>
-                </div>
-                <div className="text-[10px] opacity-50 font-mono">
-                  {new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                </div>
-              </div>
-              <h1 className="text-4xl font-black uppercase leading-[0.9] tracking-tighter drop-shadow-lg mb-2">
-                {match.title}
-              </h1>
-              <span className={`inline-block px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest border border-current/30 rounded ${theme.accent}`}>
-                {match.genre}
-              </span>
-            </div>
+          {/* Title Header */}
+          <div className="mb-4">
+             <h1 className="text-3xl font-black uppercase tracking-tighter leading-none mb-2 line-clamp-2">
+               {match.title}
+             </h1>
+             <div className="flex justify-between items-center">
+               <span className={`px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest border border-current/20 rounded ${theme.accent}`}>
+                 {match.genre}
+               </span>
+               <div className="flex items-center gap-1 opacity-40">
+                  <TicketIcon size={10} />
+                  <span className="text-[9px] font-black tracking-widest">ADMIT ONE</span>
+               </div>
+             </div>
+          </div>
 
-            {/* Navigation Tabs */}
-            <div className="flex gap-4 text-[10px] font-bold uppercase tracking-widest">
-               <button onClick={() => setActiveTab('soundtrack')} className={`hover:text-white transition ${activeTab === 'soundtrack' ? 'text-white underline decoration-2 underline-offset-4' : 'opacity-40'}`}>Tracks</button>
-               <button onClick={() => setActiveTab('cast')} className={`hover:text-white transition ${activeTab === 'cast' ? 'text-white underline decoration-2 underline-offset-4' : 'opacity-40'}`}>Cast</button>
-               <button onClick={() => setActiveTab('themes')} className={`hover:text-white transition ${activeTab === 'themes' ? 'text-white underline decoration-2 underline-offset-4' : 'opacity-40'}`}>Vibes</button>
-            </div>
+          {/* Navigation */}
+          <div className="flex gap-4 mb-4 text-[9px] font-bold uppercase tracking-widest border-b border-current/10 pb-2">
+             <button onClick={() => setActiveTab('soundtrack')} className={`hover:opacity-100 transition ${activeTab === 'soundtrack' ? 'opacity-100 underline decoration-2 underline-offset-4' : 'opacity-40'}`}>Tracks</button>
+             <button onClick={() => setActiveTab('cast')} className={`hover:opacity-100 transition ${activeTab === 'cast' ? 'opacity-100 underline decoration-2 underline-offset-4' : 'opacity-40'}`}>Cast</button>
+             <button onClick={() => setActiveTab('themes')} className={`hover:opacity-100 transition ${activeTab === 'themes' ? 'opacity-100 underline decoration-2 underline-offset-4' : 'opacity-40'}`}>Themes</button>
+          </div>
 
-            {/* List Data */}
-            <div className="min-h-[220px]">
-               {activeTab === 'soundtrack' && (
-                 <div className="space-y-3">
-                   {tracks.slice(0, 6).map((t, i) => (
-                     <div key={i} className="flex justify-between items-end text-xs border-b border-current/10 pb-1">
-                       <div className="flex items-center gap-3 overflow-hidden">
-                         <span className="font-mono opacity-30 text-[10px] w-3">0{i+1}</span>
-                         <span className="font-bold truncate max-w-[150px]">{t.name}</span>
-                       </div>
-                       <span className="opacity-50 text-[10px] truncate max-w-[80px]">{t.artists[0].name}</span>
+          {/* Data List (Scroll-free) */}
+          <div className="flex-1">
+             {activeTab === 'soundtrack' && (
+               <div className="space-y-2">
+                 {tracks.slice(0, 5).map((t, i) => (
+                   <div key={i} className="flex justify-between items-center text-[11px] border-b border-current/5 pb-1 last:border-0">
+                     <div className="flex items-center gap-2 overflow-hidden">
+                       <span className="font-mono opacity-30 text-[9px]">0{i+1}</span>
+                       <span className="font-bold truncate max-w-[140px]">{t.name}</span>
+                     </div>
+                     <span className="opacity-50 text-[9px] truncate max-w-[70px]">{t.artists[0].name}</span>
+                   </div>
+                 ))}
+               </div>
+             )}
+
+             {activeTab === 'cast' && (
+                <div className="grid grid-cols-2 gap-2">
+                   {artists.slice(0, 6).map((a, i) => (
+                     <div key={i} className="flex items-center gap-2 bg-black/5 p-1.5 rounded-md">
+                       {a.images?.[0]?.url && <CorsImg src={a.images[0].url} className="w-5 h-5 rounded-full grayscale object-cover" />}
+                       <span className="text-[9px] font-bold uppercase truncate">{a.name}</span>
                      </div>
                    ))}
-                 </div>
-               )}
+                </div>
+             )}
 
-               {activeTab === 'cast' && (
-                  <div className="grid grid-cols-2 gap-3 mt-2">
-                     {artists.slice(0, 6).map((a, i) => (
-                       <div key={i} className="flex items-center gap-2 bg-white/5 p-2 rounded-lg backdrop-blur-sm">
-                         {a.images?.[0]?.url && <CorsImg src={a.images[0].url} className="w-6 h-6 rounded-full grayscale object-cover" />}
-                         <span className="text-[10px] font-bold uppercase truncate">{a.name}</span>
-                       </div>
-                     ))}
-                  </div>
-               )}
-
-               {activeTab === 'themes' && (
-                  <div className="flex flex-wrap gap-2 content-start mt-2">
-                     {topGenres.map((g, i) => (
-                       <span key={i} className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider border border-current/20 bg-white/5 rounded-full backdrop-blur-md">
-                         {g}
-                       </span>
-                     ))}
-                  </div>
-               )}
-            </div>
-
-            {/* Footer / Barcode */}
-            <div className="opacity-30 flex justify-between items-end pt-2">
-              <div className="flex flex-col">
-                <span className="text-[8px] uppercase tracking-[0.2em]">{userName}</span>
-                <span className="text-[7px] font-mono mt-0.5">ID: {Math.random().toString(36).substr(2, 9).toUpperCase()}</span>
-              </div>
-              <div className="h-6 flex items-stretch gap-[1px]">
-                  {[...Array(25)].map((_, i) => (
-                     <div key={i} className="bg-current" style={{ width: Math.random() > 0.5 ? '2px' : '1px' }} />
-                  ))}
-              </div>
-            </div>
-
+             {activeTab === 'themes' && (
+                <div className="flex flex-wrap gap-1.5 content-start">
+                   {topGenres.map((g, i) => (
+                     <span key={i} className="px-2 py-1 text-[9px] font-bold uppercase tracking-wider border border-current/20 rounded-sm">
+                       {g}
+                     </span>
+                   ))}
+                </div>
+             )}
           </div>
+
+          {/* Footer Barcode */}
+          <div className="mt-auto pt-2 opacity-30 flex justify-between items-end">
+             <span className="text-[8px] tracking-[0.2em] uppercase">{userName}</span>
+             <div className="h-5 flex items-stretch gap-[1px] overflow-hidden">
+                {[...Array(30)].map((_, i) => (
+                   <div key={i} className="bg-current" style={{ width: Math.random() > 0.5 ? '2px' : '1px' }} />
+                ))}
+             </div>
+          </div>
+
         </div>
       </div>
       
-      <p className="text-[10px] text-stone-500 uppercase tracking-widest animate-pulse pb-8">
-        Tap to reveal quote • Download for Stories
+      <p className="text-[10px] text-stone-500 uppercase tracking-widest animate-pulse pb-10">
+        Ready to Share
       </p>
     </div>
   );

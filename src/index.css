@@ -1,0 +1,10 @@
+@import "tailwindcss";
+
+@theme {
+  --font-mono: "JetBrains Mono", monospace;
+  --color-ticket: #f5f5f4; /* stone-100 */
+}
+
+body {
+  @apply bg-stone-950 text-stone-100 antialiased;
+}

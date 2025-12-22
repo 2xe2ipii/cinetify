@@ -89,7 +89,7 @@ const CorsImg = ({ src, className, alt }: { src: string | undefined; className?:
 
 const Barcode = ({ className }: { className?: string }) => (
   <div className={`flex items-stretch h-full w-full gap-[2px] ${className}`}>
-    {[...Array(28)].map((_, i) => (
+    {[...Array(30)].map((_, i) => (
       <div 
         key={i} 
         className="bg-current opacity-90" 
@@ -102,7 +102,7 @@ const Barcode = ({ className }: { className?: string }) => (
   </div>
 );
 
-export const MovieTicket = ({ match, tracks, artists }: Props) => {
+export const MovieTicket = ({ match, tracks, artists, userName }: Props) => {
   const [activeTab, setActiveTab] = useState<Tab>('soundtrack');
   const [currentTheme, setCurrentTheme] = useState<Theme>('classic');
   const [isDownloading, setIsDownloading] = useState(false);
@@ -117,18 +117,18 @@ export const MovieTicket = ({ match, tracks, artists }: Props) => {
   allGenres.forEach((g) => { genreCounts[g] = (genreCounts[g] || 0) + 1; });
   const topGenres = Object.entries(genreCounts)
     .sort(([, a], [, b]) => b - a)
-    .slice(0, 6)
+    .slice(0, 8)
     .map(([g]) => g);
 
   const handleDownload = useCallback(async () => {
     if (!ticketRef.current) return;
     setIsDownloading(true);
     try {
-      await new Promise((r) => setTimeout(r, 200)); // slight delay for render
+      await new Promise((r) => setTimeout(r, 200));
       const dataUrl = await toPng(ticketRef.current, {
         cacheBust: true,
         pixelRatio: 3,
-        backgroundColor: 'transparent', // IMPORTANT for mask to work in PNG
+        backgroundColor: 'transparent', 
       });
       const link = document.createElement('a');
       link.download = `Sinetify_${match.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.png`;
@@ -171,33 +171,33 @@ export const MovieTicket = ({ match, tracks, artists }: Props) => {
       <div className="relative drop-shadow-2xl">
         <div
           ref={ticketRef}
-          className={`relative aspect-[9/16] w-full max-w-[400px] overflow-hidden flex flex-col ${theme.text} ${theme.font}`}
+          className={`relative aspect-[9/16] w-full max-w-[380px] overflow-hidden flex flex-col ${theme.text} ${theme.font}`}
           style={{ 
             backgroundColor: theme.bgHex,
-            // CSS MASKING for the notches (The Half Circles)
-            maskImage: `radial-gradient(circle at 0% 64%, transparent 14px, black 15px), 
-                        radial-gradient(circle at 100% 64%, transparent 14px, black 15px)`,
-            WebkitMaskImage: `radial-gradient(circle at 0% 64%, transparent 14px, black 15px), 
-                              radial-gradient(circle at 100% 64%, transparent 14px, black 15px)`
+            // NOTCH MASK: Moved up to 58% to give more room for the list
+            maskImage: `radial-gradient(circle at 0% 58%, transparent 12px, black 13px), 
+                        radial-gradient(circle at 100% 58%, transparent 12px, black 13px)`,
+            WebkitMaskImage: `radial-gradient(circle at 0% 58%, transparent 12px, black 13px), 
+                              radial-gradient(circle at 100% 58%, transparent 12px, black 13px)`
           }}
         >
-          {/* --- POSTER BACKGROUND (Top 75%) --- */}
-          <div className="absolute top-0 left-0 w-full h-[75%] z-0">
+          {/* --- POSTER BACKGROUND (Top 62% - Slightly reduced to fit 7 songs) --- */}
+          <div className="absolute top-0 left-0 w-full h-[62%] z-0">
              <CorsImg
                src={match.posterPath}
                alt="Poster"
                className="w-full h-full object-cover object-top"
              />
-             {/* Gradient Fade to connect poster to ticket body */}
+             {/* Fade gradient */}
              <div 
                className="absolute inset-0"
                style={{
-                 background: `linear-gradient(to bottom, transparent 40%, ${theme.bgHex} 85%, ${theme.bgHex} 100%)`
+                 background: `linear-gradient(to bottom, transparent 30%, ${theme.bgHex} 90%, ${theme.bgHex} 100%)`
                }}
              />
           </div>
 
-          {/* Paper Texture Overlay */}
+          {/* Paper Texture */}
           <div className="absolute inset-0 z-10 opacity-[0.05] pointer-events-none mix-blend-multiply" 
              style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }} 
           />
@@ -205,92 +205,89 @@ export const MovieTicket = ({ match, tracks, artists }: Props) => {
           {/* --- CONTENT LAYOUT --- */}
           <div className="relative z-20 flex flex-col h-full">
 
-            {/* TOP BADGES (Over Poster) */}
-            <div className="h-[64%] p-5 flex flex-col justify-between items-start">
-               {/* Fixed visibility: Solid pill for Now Showing */}
-               <div className="self-center mt-4">
-                 <div className={`px-3 py-1 ${isDark ? 'bg-white text-black' : 'bg-black text-white'} text-[10px] font-black uppercase tracking-[0.25em] shadow-lg`}>
+            {/* TOP SECTION (Over Poster) */}
+            <div className="h-[58%] p-5 flex flex-col justify-between items-start">
+               {/* Now Showing Badge */}
+               <div className="self-center mt-3">
+                 <div className={`px-2 py-0.5 ${isDark ? 'bg-white text-black' : 'bg-black text-white'} text-[9px] font-black uppercase tracking-[0.25em] shadow-lg`}>
                     Now Showing
                  </div>
                </div>
                
-               {/* Spacer */}
                <div className="flex-1" />
 
-               {/* Genre / Admit One (High Contrast Pills) */}
-               <div className="w-full flex justify-between items-end pb-4">
+               {/* Genre / Admit One Pills */}
+               <div className="w-full flex justify-between items-end pb-3">
                   <div className={`px-2 py-1 ${theme.panel} backdrop-blur-md border ${theme.border} rounded-sm shadow-sm`}>
-                     <p className="text-[9px] font-bold uppercase tracking-wider opacity-80 leading-none">
+                     <p className="text-[8px] font-bold uppercase tracking-wider opacity-80 leading-none">
                         {match.genre.split('/')[0]}
                      </p>
                   </div>
                   
-                  <div className={`px-2 py-1 ${theme.highlight} font-mono text-[10px] font-bold uppercase tracking-tighter -rotate-3 shadow-lg`}>
+                  <div className={`px-2 py-1 ${theme.highlight} font-mono text-[9px] font-bold uppercase tracking-tighter -rotate-3 shadow-lg`}>
                      ADMIT ONE
                   </div>
                </div>
             </div>
 
-            {/* --- PERFORATION LINE --- */}
-            {/* Exactly at 64% to match the mask notches */}
+            {/* --- PERFORATION LINE (Matched to Notch at 58%) --- */}
             <div className="relative w-full h-[2px] flex items-center justify-center">
-               {/* The Line */}
-               <div className={`w-[86%] border-t-[3px] border-dashed ${theme.border} opacity-80`} />
+               <div className={`w-[88%] border-t-[2px] border-dashed ${theme.border} opacity-60`} />
             </div>
 
-            {/* --- TICKET STUB (Data Area) --- */}
-            <div className="flex-1 flex flex-col px-6 pt-2 pb-5 bg-gradient-to-b from-transparent to-black/5">
+            {/* --- DATA STUB (Bottom 42%) --- */}
+            <div className="flex-1 flex flex-col px-5 pt-2 pb-4 bg-gradient-to-b from-transparent to-black/5">
               
-              {/* TABS */}
-              <div className="flex justify-between items-center mb-3 border-b border-current/10 pb-2">
-                 <div className="flex gap-4">
-                    <button onClick={() => setActiveTab('soundtrack')} className={`transition hover:opacity-100 ${activeTab === 'soundtrack' ? 'opacity-100' : 'opacity-40'}`}>
-                      <Disc size={16} />
+              {/* COMPACT NAV */}
+              <div className="flex justify-between items-center mb-2 border-b border-current/10 pb-1">
+                 <div className="flex gap-4 text-[10px]">
+                    <button onClick={() => setActiveTab('soundtrack')} className={`transition hover:opacity-100 ${activeTab === 'soundtrack' ? 'opacity-100 scale-105' : 'opacity-40'}`}>
+                      <Disc size={14} />
                     </button>
-                    <button onClick={() => setActiveTab('cast')} className={`transition hover:opacity-100 ${activeTab === 'cast' ? 'opacity-100' : 'opacity-40'}`}>
-                      <Users size={16} />
+                    <button onClick={() => setActiveTab('cast')} className={`transition hover:opacity-100 ${activeTab === 'cast' ? 'opacity-100 scale-105' : 'opacity-40'}`}>
+                      <Users size={14} />
                     </button>
-                    <button onClick={() => setActiveTab('genres')} className={`transition hover:opacity-100 ${activeTab === 'genres' ? 'opacity-100' : 'opacity-40'}`}>
-                      <Tag size={16} />
+                    <button onClick={() => setActiveTab('genres')} className={`transition hover:opacity-100 ${activeTab === 'genres' ? 'opacity-100 scale-105' : 'opacity-40'}`}>
+                      <Tag size={14} />
                     </button>
                  </div>
-                 {/* Tiny Date Stamp */}
-                 <span className="text-[8px] font-mono opacity-50">{new Date().toLocaleDateString()}</span>
+                 <span className="text-[7px] font-mono opacity-50 uppercase">{new Date().toLocaleDateString()}</span>
               </div>
 
               {/* LIST CONTENT */}
-              <div className="flex-1 overflow-hidden">
+              <div className="flex-1 overflow-hidden relative">
                 {activeTab === 'soundtrack' && (
-                    <div className="flex flex-col gap-2 h-full justify-center">
-                      {tracks.slice(0, 4).map((t, i) => (
-                        <div key={i} className="flex items-center justify-between text-[11px] font-medium">
-                          <div className="flex items-center gap-3 truncate max-w-[70%]">
-                              <span className="font-mono text-[9px] opacity-40">0{i + 1}</span>
-                              <span className="uppercase tracking-tight truncate">{t.name}</span>
+                    <div className="flex flex-col h-full justify-start pt-1 gap-[5px]">
+                      {/* INCREASED TO 7 ITEMS */}
+                      {tracks.slice(0, 7).map((t, i) => (
+                        <div key={i} className="flex items-center justify-between w-full text-[10px] leading-tight">
+                          <div className="flex items-center gap-2 truncate max-w-[75%]">
+                              <span className="font-mono text-[8px] opacity-40 w-3 text-right">{i + 1}</span>
+                              <span className="uppercase font-bold tracking-tight truncate">{t.name}</span>
                           </div>
-                          <span className="text-[9px] opacity-50 truncate max-w-[25%] text-right">{t.artists[0].name}</span>
+                          <span className="text-[8px] opacity-60 truncate max-w-[20%] text-right">{t.artists[0].name}</span>
                         </div>
                       ))}
                     </div>
                 )}
                 
                 {activeTab === 'cast' && (
-                    <div className="grid grid-cols-4 gap-2 pt-1">
+                    <div className="grid grid-cols-4 gap-2 pt-2">
                       {artists.slice(0, 8).map((a, i) => (
-                          <div key={i} className="flex flex-col items-center">
-                            <div className={`w-8 h-8 rounded-full overflow-hidden mb-1 grayscale ${theme.panel}`}>
+                          <div key={i} className="flex flex-col items-center gap-1">
+                            <div className={`w-9 h-9 rounded-full overflow-hidden grayscale ${theme.panel} ring-1 ring-current/10`}>
                               {a.images?.[0]?.url && <CorsImg src={a.images[0].url} className="w-full h-full object-cover" />}
                             </div>
-                            <span className="text-[7px] font-bold uppercase truncate max-w-full">{a.name.split(' ')[0]}</span>
+                            <span className="text-[6px] font-bold uppercase truncate max-w-full opacity-80">{a.name.split(' ')[0]}</span>
                           </div>
                       ))}
                     </div>
                 )}
 
                 {activeTab === 'genres' && (
-                  <div className="flex flex-wrap gap-2 content-center h-full">
+                  <div className="flex flex-wrap gap-1.5 content-start pt-2 justify-center">
                     {topGenres.map((g, i) => (
-                      <span key={i} className={`px-2 py-1 text-[9px] font-bold uppercase border ${theme.border} opacity-70`}>
+                      <span key={i} className={`px-2 py-1 text-[8px] font-bold uppercase border ${theme.border} ${i < 2 ? theme.highlight : 'opacity-60 bg-current/5'}`}>
                         {g}
                       </span>
                     ))}
@@ -298,25 +295,28 @@ export const MovieTicket = ({ match, tracks, artists }: Props) => {
                 )}
               </div>
 
-              {/* FOOTER METADATA (Replaces Title Header) */}
-              <div className="mt-auto pt-3 flex flex-col gap-1">
+              {/* COMPACT FOOTER */}
+              <div className="mt-auto pt-2 flex flex-col gap-1 border-t border-dashed border-current/20">
                   <div className="flex justify-between items-end">
                       <div className="flex flex-col max-w-[70%]">
-                         <span className="text-[7px] uppercase tracking-widest opacity-40">Film Title</span>
-                         <span className="text-[10px] font-bold uppercase truncate leading-none">{match.title}</span>
+                         <span className="text-[6px] uppercase tracking-widest opacity-40">Film</span>
+                         <span className="text-[9px] font-bold uppercase truncate leading-none">{match.title}</span>
                       </div>
+                      
+                      {/* Barcode moved inline to save vertical space */}
+                      <div className="h-4 w-16 opacity-50 ml-auto mr-2">
+                        <Barcode />
+                      </div>
+
                       <div className="text-right">
-                         <span className="text-[7px] uppercase tracking-widest opacity-40 block">Seat</span>
-                         <span className="text-[10px] font-mono font-bold leading-none">A-12</span>
+                         <span className="text-[6px] uppercase tracking-widest opacity-40 block">Seat</span>
+                         <span className="text-[9px] font-mono font-bold leading-none">A-12</span>
                       </div>
                   </div>
                   
-                  {/* Barcode */}
-                  <div className="h-6 w-full opacity-60 mt-1">
-                    <Barcode />
-                  </div>
-                  <div className="text-[6px] text-center uppercase tracking-[0.3em] opacity-30 mt-1">
-                    Sinetify Ticket System • Non-Refundable
+                  <div className="flex justify-between text-[6px] uppercase font-bold tracking-[0.2em] opacity-30 mt-0.5">
+                     <span>{userName}</span>
+                     <span>Sinetify Sys.</span>
                   </div>
               </div>
 

@@ -260,7 +260,7 @@ export const MovieTicket = ({ match, tracks, artists, userName }: Props) => {
                         <div className="grid grid-cols-4 gap-3 pt-2">
                             {artists.slice(0, 8).map((a, i) => (
                                 <div key={i} className="flex flex-col items-center gap-1 drop-shadow-sm">
-                                    <div className={`w-11 h-11 rounded-full overflow-hidden grayscale ${theme.panel} ring-2 ring-white/10 shadow-lg`}>
+                                    <div className={`w-11 h-11 rounded-full overflow-hidden ${theme.panel} ring-2 ring-white/10 shadow-lg`}>
                                         {a.images?.[0]?.url && <CorsImg src={a.images[0].url} className="w-full h-full object-cover" />}
                                     </div>
                                     <span className="text-[7px] font-bold uppercase truncate max-w-full opacity-90">{a.name.split(' ')[0]}</span>

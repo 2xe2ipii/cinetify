@@ -20,7 +20,6 @@ const THEMES: Record<Theme, { bg: string; text: string; accent: string; paper: s
   blueprint: { bg: 'bg-blue-950', text: 'text-blue-100', accent: 'text-yellow-400', paper: 'bg-blue-900', font: 'font-mono', border: 'border-blue-700/50' },
 };
 
-// --- PROXY-ENABLED IMAGE COMPONENT ---
 const CorsImg = ({ src, className, alt }: { src: string | undefined, className?: string, alt?: string }) => {
   const [imgData, setImgData] = useState<string | null>(null);
 
@@ -45,12 +44,10 @@ const CorsImg = ({ src, className, alt }: { src: string | undefined, className?:
 
     const load = async () => {
       try {
-        // Attempt 1: Direct CORS fetch
         const data = await fetchImage(src);
         if (isMounted) setImgData(data);
       } catch {
         try {
-          // Attempt 2: Public Proxy (The Bypass)
           const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(src)}`;
           const data = await fetchImage(proxyUrl);
           if (isMounted) setImgData(data);
@@ -90,18 +87,16 @@ export const MovieTicket = ({ match, tracks, artists, userName }: Props) => {
 
       const dataUrl = await toPng(ticketRef.current, {
         cacheBust: true,
-        pixelRatio: 4, // 4x Resolution for crisp text
-        backgroundColor: 'transparent', // Ensure corners are see-through
+        pixelRatio: 4, 
+        backgroundColor: 'transparent',
         style: {
-          // KEY FIX: Strip shadows and 3D effects during export to prevent white artifacts
           transform: 'none', 
           boxShadow: 'none',
           perspective: 'none',
           margin: '0',
-          // @ts-expect-error - fontSmooth is a valid CSS prop but not in standard types
           fontSmooth: 'always',
           webkitFontSmoothing: 'antialiased',
-        }
+        } as any
       });
 
       const link = document.createElement('a');
@@ -121,7 +116,7 @@ export const MovieTicket = ({ match, tracks, artists, userName }: Props) => {
     <div className="w-full max-w-[850px] mx-auto flex flex-col items-center gap-6 animate-in slide-in-from-bottom-8 duration-700">
       
       {/* TOOLBAR */}
-      <div className="flex flex-wrap items-center justify-center gap-3 w-full p-4 bg-stone-900/50 backdrop-blur-md rounded-full border border-stone-800 shadow-xl z-50">
+      <div className="flex flex-wrap items-center justify-center gap-3 w-full max-w-sm md:max-w-none p-4 bg-stone-900/80 backdrop-blur-md rounded-full border border-stone-800 shadow-xl z-50">
         <div className="flex gap-2 mr-4 border-r border-stone-700 pr-4">
           {(Object.keys(THEMES) as Theme[]).map((t) => (
             <button
@@ -149,22 +144,23 @@ export const MovieTicket = ({ match, tracks, artists, userName }: Props) => {
         className={`relative w-full shadow-2xl overflow-hidden group perspective-1000 ${theme.bg}`}
         style={{ borderRadius: '1.5rem' }} 
       >
-        <div className={`flex flex-col md:flex-row ${theme.paper} ${theme.text} ${theme.font} min-h-[500px] border-4 ${theme.border}`}>
+        <div className={`flex flex-col md:flex-row ${theme.paper} ${theme.text} ${theme.font} min-h-[600px] md:min-h-[500px] border-4 ${theme.border}`}>
           
           {/* LEFT: POSTER SECTION */}
-          <div className="md:w-5/12 relative h-48 md:h-auto bg-black overflow-hidden border-b-4 md:border-b-0 md:border-r-4 border-dashed border-current">
+          {/* Mobile: 1:1 Aspect Ratio (Big Square) | Desktop: 5/12 Width */}
+          <div className="w-full aspect-square md:aspect-auto md:w-5/12 relative bg-black overflow-hidden border-b-4 md:border-b-0 md:border-r-4 border-dashed border-current">
             <CorsImg 
               src={match.posterPath} 
               alt="Poster"
               className="w-full h-full object-cover object-top opacity-90 mix-blend-hard-light" 
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-90" />
-            <div className="absolute bottom-4 left-4 right-4 text-white">
-               <div className="flex items-center gap-2 opacity-70 mb-1">
+            <div className="absolute bottom-6 left-6 right-6 text-white">
+               <div className="flex items-center gap-2 opacity-70 mb-2">
                  <Quote size={12} className="text-white" />
                  <span className="text-[10px] uppercase tracking-widest">Memorable Quote</span>
                </div>
-               <p className="text-lg md:text-xl font-serif italic leading-tight text-white/90 drop-shadow-md">
+               <p className="text-xl md:text-2xl font-serif italic leading-tight text-white/90 drop-shadow-md">
                  "{match.quote}"
                </p>
             </div>
@@ -178,7 +174,7 @@ export const MovieTicket = ({ match, tracks, artists, userName }: Props) => {
                    <TicketIcon size={14} />
                    <span className="text-[9px] uppercase tracking-[0.2em] font-bold">Admit One</span>
                 </div>
-                <h1 className="text-2xl md:text-4xl font-black uppercase tracking-tighter leading-none">
+                <h1 className="text-3xl md:text-4xl font-black uppercase tracking-tighter leading-none">
                   {match.title}
                 </h1>
                 <p className={`text-[10px] font-bold uppercase tracking-widest ${theme.accent}`}>
@@ -196,15 +192,13 @@ export const MovieTicket = ({ match, tracks, artists, userName }: Props) => {
               <button onClick={() => setActiveTab('themes')} className={`flex-1 py-3 hover:bg-black/5 ${activeTab === 'themes' ? 'opacity-100 underline decoration-2 underline-offset-4' : 'opacity-40'}`}>Themes</button>
             </div>
 
-            <div className="flex-1 p-5 md:overflow-hidden relative">
-              
+            <div className="flex-1 p-5 md:overflow-hidden relative min-h-[300px]">
               {activeTab === 'soundtrack' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-2">
-                  {/* Left Column (1-5) */}
                   <div className="space-y-2">
                     {tracks.slice(0, 5).map((t, i) => (
                       <div key={i} className="flex justify-between items-baseline border-b border-current/10 pb-1">
-                        <div className="truncate max-w-[150px] md:max-w-[120px]">
+                        <div className="truncate max-w-[180px] md:max-w-[120px]">
                           <span className="text-[10px] font-bold uppercase mr-2">{i + 1}.</span>
                           <span className="text-[11px] font-bold truncate">{t.name}</span>
                         </div>
@@ -212,12 +206,10 @@ export const MovieTicket = ({ match, tracks, artists, userName }: Props) => {
                       </div>
                     ))}
                   </div>
-
-                  {/* Right Column (6-10) */}
                   <div className="space-y-2">
                     {tracks.slice(5, 10).map((t, i) => (
                       <div key={i + 5} className="flex justify-between items-baseline border-b border-current/10 pb-1">
-                        <div className="truncate max-w-[150px] md:max-w-[120px]">
+                        <div className="truncate max-w-[180px] md:max-w-[120px]">
                           <span className="text-[10px] font-bold uppercase mr-2">{i + 6}.</span>
                           <span className="text-[11px] font-bold truncate">{t.name}</span>
                         </div>

@@ -10,10 +10,9 @@ interface Props {
   userName: string;
 }
 
-type Tab = 'soundtrack' | 'cast' | 'genres'; // Renamed Themes -> Genres
+type Tab = 'soundtrack' | 'cast' | 'genres'; 
 type Theme = 'classic' | 'midnight' | 'retro' | 'blueprint';
 
-// HEX Codes needed for the gradient fade to work perfectly in the export
 const THEME_CONFIG: Record<Theme, { bgHex: string; text: string; accent: string; font: string; border: string }> = {
   classic:   { bgHex: '#f4f4f0', text: 'text-stone-900', accent: 'text-red-600', font: 'font-mono', border: 'border-stone-300' },
   midnight:  { bgHex: '#000000', text: 'text-white', accent: 'text-cyan-400', font: 'font-sans', border: 'border-stone-800' },
@@ -35,7 +34,6 @@ const CorsImg = ({ src, className, alt }: { src: string | undefined, className?:
         reader.onloadend = () => { if (isMounted) setImgData(reader.result as string); };
         reader.readAsDataURL(blob);
       } catch {
-        // Fallback proxy
         try {
           const proxy = `https://api.allorigins.win/raw?url=${encodeURIComponent(src)}`;
           const res = await fetch(proxy);
@@ -70,15 +68,13 @@ export const MovieTicket = ({ match, tracks, artists, userName }: Props) => {
     if (!ticketRef.current) return;
     setIsDownloading(true);
     try {
-      await new Promise(r => setTimeout(r, 100)); // Wait for render
-      
+      await new Promise(r => setTimeout(r, 100));
       const dataUrl = await toPng(ticketRef.current, {
         cacheBust: true,
-        pixelRatio: 3, // High Quality
-        backgroundColor: 'transparent', // IMPORTANT: Allows rounded corners to be transparent
+        pixelRatio: 3,
+        backgroundColor: 'transparent',
         style: { transform: 'none' }
       });
-      
       const link = document.createElement('a');
       link.download = `Sinetify_${match.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.png`;
       link.href = dataUrl;
@@ -109,7 +105,7 @@ export const MovieTicket = ({ match, tracks, artists, userName }: Props) => {
       <div 
         ref={ticketRef}
         className={`relative aspect-[9/16] w-full max-w-[380px] shadow-2xl overflow-hidden flex flex-col rounded-[24px] ${theme.text} ${theme.font}`}
-        style={{ backgroundColor: theme.bgHex }} // Explicit BG for download to catch
+        style={{ backgroundColor: theme.bgHex }}
       >
         
         {/* === TOP SECTION: POSTER (3/5 Height = 60%) === */}
@@ -117,21 +113,21 @@ export const MovieTicket = ({ match, tracks, artists, userName }: Props) => {
           <CorsImg 
             src={match.posterPath} 
             alt="Poster"
-            className="w-full h-full object-cover object-top" 
+            // CHANGED: object-center ensures we see the actors/center of poster, not just the sky/title
+            className="w-full h-full object-cover object-center" 
           />
           
-          {/* THE BLEND: Gradient matches the ticket body color exactly */}
-          {/* We use an inline style for the gradient stop to ensure it matches theme.bgHex perfectly */}
+          {/* THE BLEND */}
           <div 
-            className="absolute inset-x-0 bottom-0 h-48 z-10"
-            style={{ background: `linear-gradient(to top, ${theme.bgHex} 5%, transparent)` }}
+            className="absolute inset-x-0 bottom-0 h-40 z-10"
+            style={{ background: `linear-gradient(to top, ${theme.bgHex} 10%, transparent)` }}
           />
           
-          {/* Overlay Quote inside the poster area */}
+          {/* Quote (Removed Vibe Check Label) */}
           <div className="absolute bottom-6 left-6 right-6 z-20">
              <div className="flex items-center gap-2 opacity-80 mb-2">
                  <Quote size={12} className={currentTheme === 'classic' || currentTheme === 'retro' ? 'text-stone-900' : 'text-white'} />
-                 <span className={`text-[9px] uppercase tracking-widest font-bold ${currentTheme === 'classic' || currentTheme === 'retro' ? 'text-stone-900' : 'text-white'}`}>Vibe Check</span>
+                 {/* REMOVED: Vibe Check Text */}
              </div>
              <p className={`text-xl font-serif italic leading-tight drop-shadow-md opacity-90 ${currentTheme === 'classic' || currentTheme === 'retro' ? 'text-stone-900' : 'text-white'}`}>
                 "{match.quote}"
@@ -139,16 +135,16 @@ export const MovieTicket = ({ match, tracks, artists, userName }: Props) => {
           </div>
         </div>
 
-        {/* === BOTTOM SECTION: DATA STUB (2/5 Height = 40%) === */}
+        {/* === BOTTOM SECTION: DATA STUB (40%) === */}
         <div className="flex-1 relative z-10 flex flex-col px-6 pb-4 pt-0">
           
-          {/* Visual Divider: Perforation Line */}
+          {/* Divider */}
           <div className="w-full border-t-2 border-dashed border-current/20 mb-3 relative">
              <div className="absolute -left-9 -top-3 w-6 h-6 rounded-full bg-stone-950" /> 
              <div className="absolute -right-9 -top-3 w-6 h-6 rounded-full bg-stone-950" />
           </div>
 
-          {/* Header & Title */}
+          {/* Header */}
           <div className="mb-3 flex justify-between items-start">
             <div className="w-[75%]">
                <h1 className="text-3xl font-black uppercase tracking-tighter leading-[0.9] mb-1 line-clamp-2">
@@ -158,21 +154,20 @@ export const MovieTicket = ({ match, tracks, artists, userName }: Props) => {
                  {match.genre}
                </span>
             </div>
-            {/* Admit One Box */}
             <div className="border border-current/30 rounded p-1 text-center opacity-60">
                <div className="text-[7px] uppercase font-black leading-none">ADMIT</div>
                <div className="text-[7px] uppercase font-black leading-none">ONE</div>
             </div>
           </div>
 
-          {/* Navigation Tabs (Old UI Style) */}
+          {/* Navigation */}
           <div className="flex w-full border-b border-current/10 text-[9px] font-bold uppercase tracking-widest mb-2">
              <button onClick={() => setActiveTab('soundtrack')} className={`flex-1 pb-1 hover:opacity-100 transition text-left ${activeTab === 'soundtrack' ? 'opacity-100 border-b-2 border-current' : 'opacity-40'}`}>Tracks</button>
              <button onClick={() => setActiveTab('cast')} className={`flex-1 pb-1 hover:opacity-100 transition text-center ${activeTab === 'cast' ? 'opacity-100 border-b-2 border-current' : 'opacity-40'}`}>Cast</button>
              <button onClick={() => setActiveTab('genres')} className={`flex-1 pb-1 hover:opacity-100 transition text-right ${activeTab === 'genres' ? 'opacity-100 border-b-2 border-current' : 'opacity-40'}`}>Genres</button>
           </div>
 
-          {/* Data List (High Density for 10 Items) */}
+          {/* Data List */}
           <div className="flex-1 overflow-hidden">
              {activeTab === 'soundtrack' && (
                <div className="flex flex-col justify-between h-full pb-2">
@@ -210,10 +205,10 @@ export const MovieTicket = ({ match, tracks, artists, userName }: Props) => {
              )}
           </div>
 
-          {/* Footer Barcode */}
+          {/* Footer */}
           <div className="mt-1 pt-2 border-t border-dashed border-current/10 opacity-40 flex justify-between items-end">
              <div className="flex flex-col">
-                <span className="text-[7px] uppercase tracking-widest font-bold">Main Character</span>
+                <span className="text-[7px] uppercase tracking-widest font-bold">Issued To</span>
                 <span className="text-[7px] font-mono">{userName}</span>
              </div>
              <div className="h-4 flex items-stretch gap-[1px]">

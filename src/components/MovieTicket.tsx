@@ -89,7 +89,7 @@ const CorsImg = ({ src, className, alt }: { src: string | undefined; className?:
 
 const Barcode = ({ className }: { className?: string }) => (
   <div className={`flex items-stretch h-full w-full gap-[3px] ${className}`}>
-    {[...Array(26)].map((_, i) => (
+    {[...Array(28)].map((_, i) => (
       <div 
         key={i} 
         className="bg-current opacity-80" 
@@ -174,29 +174,26 @@ export const MovieTicket = ({ match, tracks, artists, userName }: Props) => {
           className={`relative aspect-[9/16] w-full max-w-[380px] overflow-hidden flex flex-col ${theme.text} ${theme.font}`}
           style={{ 
             backgroundColor: theme.bgHex,
-            // NOTCH MASK - Placed lower (75%) to separate list from footer
-            maskImage: `radial-gradient(circle at 0% 75%, transparent 12px, black 13px), 
-                        radial-gradient(circle at 100% 75%, transparent 12px, black 13px)`,
-            WebkitMaskImage: `radial-gradient(circle at 0% 75%, transparent 12px, black 13px), 
-                              radial-gradient(circle at 100% 75%, transparent 12px, black 13px)`
+            // NOTCH MASK - Moved to 81% to fit 10 songs comfortably above the perforation
+            maskImage: `radial-gradient(circle at 0% 81%, transparent 12px, black 13px), 
+                        radial-gradient(circle at 100% 81%, transparent 12px, black 13px)`,
+            WebkitMaskImage: `radial-gradient(circle at 0% 81%, transparent 12px, black 13px), 
+                              radial-gradient(circle at 100% 81%, transparent 12px, black 13px)`
           }}
         >
-          {/* --- POSTER BACKGROUND (Deep Backdrop) --- */}
-          {/* It takes up 75% of the ticket height */}
-          <div className="absolute top-0 left-0 w-full h-[75%] z-0">
+          {/* --- POSTER BACKGROUND --- */}
+          {/* Deep backdrop (81%) to match the new notch position, ensuring consistent color behind list */}
+          <div className="absolute top-0 left-0 w-full h-[81%] z-0">
              <CorsImg
                src={match.posterPath}
                alt="Poster"
                className="w-full h-full object-cover object-top"
              />
-             {/* THE FADE:
-                Starts transparent, fades to theme color.
-                This allows text to sit ON TOP of the image comfortably.
-             */}
+             {/* THE FADE: Smooth transition for text legibility */}
              <div 
                className="absolute inset-0"
                style={{
-                 background: `linear-gradient(to bottom, transparent 20%, ${theme.bgHex} 90%, ${theme.bgHex} 100%)`
+                 background: `linear-gradient(to bottom, transparent 25%, ${theme.bgHex} 90%, ${theme.bgHex} 100%)`
                }}
              />
           </div>
@@ -207,25 +204,24 @@ export const MovieTicket = ({ match, tracks, artists, userName }: Props) => {
           />
 
           {/* --- CONTENT LAYER --- */}
-          {/* Z-20 ensures this sits ON TOP of the poster and gradient */}
           <div className="relative z-20 flex flex-col h-full px-6 pt-6 pb-4">
 
-            {/* 1. Header Area */}
+            {/* 1. HEADER (Larger Badges) */}
             <div className="flex justify-between items-start mb-2">
-                <div className={`px-2 py-0.5 ${isDark ? 'bg-white text-black' : 'bg-black text-white'} text-[9px] font-black uppercase tracking-[0.25em] shadow-lg`}>
+                <div className={`px-3 py-1 ${isDark ? 'bg-white text-black' : 'bg-black text-white'} text-[11px] font-black uppercase tracking-[0.25em] shadow-lg`}>
                     Now Showing
                 </div>
                 {/* Admit One Stamp */}
-                <div className={`px-2 py-1 ${theme.highlight} font-mono text-[9px] font-bold uppercase tracking-tighter rotate-[-6deg] shadow-lg border-2 border-dashed border-current/20`}>
+                <div className={`px-3 py-1 ${theme.highlight} font-mono text-[11px] font-bold uppercase tracking-tighter rotate-[-6deg] shadow-lg border-2 border-dashed border-current/20`}>
                     ADMIT ONE
                 </div>
             </div>
 
-            {/* Spacer to push content down slightly */}
-            <div className="h-[25%] shrink-0" />
+            {/* Spacer - pushes tabs down to poster mid-section */}
+            <div className="h-[22%] shrink-0" />
 
-            {/* 2. TAB SELECTION (Sitting ON the poster) */}
-            <div className="flex w-full text-[11px] font-black uppercase tracking-widest mb-4 drop-shadow-md">
+            {/* 2. TAB SELECTION */}
+            <div className="flex w-full text-[11px] font-black uppercase tracking-widest mb-3 drop-shadow-md">
                 <button
                   onClick={() => setActiveTab('soundtrack')}
                   className={`flex-1 pb-1 text-left transition ${
@@ -252,25 +248,26 @@ export const MovieTicket = ({ match, tracks, artists, userName }: Props) => {
                 </button>
             </div>
 
-            {/* 3. MAIN LIST (Overlapping Fade) */}
-            <div className="flex-1 overflow-hidden">
+            {/* 3. MAIN LIST (Top 10 Tracks) */}
+            <div className="flex-1 overflow-hidden flex flex-col justify-start">
                 {activeTab === 'soundtrack' && (
-                    <div className="flex flex-col gap-2.5">
-                      {tracks.slice(0, 7).map((t, i) => (
+                    <div className="flex flex-col gap-[9px] pb-2"> 
+                      {/* Gap adjusted so 10 items fit perfectly with spacing at bottom */}
+                      {tracks.slice(0, 10).map((t, i) => (
                         <div 
                           key={i} 
-                          className="flex items-baseline justify-between w-full text-[12px] leading-none drop-shadow-md group"
+                          className="flex items-baseline justify-between w-full text-[11px] leading-none drop-shadow-md group"
                         >
                           <div className="flex items-center gap-3 truncate max-w-[75%]">
                               {/* Index */}
-                              <span className="font-mono text-[10px] opacity-60 w-3 text-right">{i + 1}</span>
+                              <span className="font-mono text-[10px] opacity-60 w-4 text-right">{i + 1}</span>
                               {/* Title */}
                               <span className="font-bold uppercase tracking-tight truncate opacity-100 group-hover:text-red-500 transition-colors">
                                 {t.name}
                               </span>
                           </div>
                           {/* Artist */}
-                          <span className="text-[10px] font-medium opacity-70 truncate max-w-[20%] text-right">
+                          <span className="text-[9px] font-medium opacity-70 truncate max-w-[20%] text-right">
                             {t.artists[0].name}
                           </span>
                         </div>
@@ -279,7 +276,7 @@ export const MovieTicket = ({ match, tracks, artists, userName }: Props) => {
                 )}
                 
                 {activeTab === 'cast' && (
-                    <div className="grid grid-cols-4 gap-3 pt-2">
+                    <div className="grid grid-cols-4 gap-3 pt-4">
                       {artists.slice(0, 8).map((a, i) => (
                           <div key={i} className="flex flex-col items-center gap-1 drop-shadow-sm">
                             <div className={`w-11 h-11 rounded-full overflow-hidden grayscale ${theme.panel} ring-2 ring-white/10 shadow-lg`}>
@@ -292,7 +289,7 @@ export const MovieTicket = ({ match, tracks, artists, userName }: Props) => {
                 )}
 
                 {activeTab === 'genres' && (
-                  <div className="flex flex-wrap gap-2 content-start pt-4 justify-center">
+                  <div className="flex flex-wrap gap-2 content-start pt-6 justify-center">
                     {topGenres.map((g, i) => (
                       <span key={i} className={`px-3 py-1.5 text-[10px] font-bold uppercase border ${theme.border} backdrop-blur-sm shadow-sm ${i < 2 ? theme.highlight : 'opacity-80 bg-current/5'}`}>
                         {g}
@@ -302,13 +299,13 @@ export const MovieTicket = ({ match, tracks, artists, userName }: Props) => {
                 )}
             </div>
 
-            {/* 4. PERFORATION & FOOTER */}
-            {/* Matches the mask position at 75% */}
-            <div className="relative w-full py-4 flex items-center justify-center">
+            {/* 4. PERFORATION */}
+            {/* Visually aligned with the 81% mask */}
+            <div className="relative w-full pb-3 flex items-center justify-center">
                <div className={`w-full border-t-[3px] border-dashed ${theme.border} opacity-40`} />
             </div>
 
-            {/* Footer Data */}
+            {/* 5. FOOTER (Barcode Area) */}
             <div className="flex flex-col gap-2 mt-auto">
                  <div className="flex justify-between items-end opacity-70">
                       <div className="flex flex-col">
@@ -321,7 +318,7 @@ export const MovieTicket = ({ match, tracks, artists, userName }: Props) => {
                       </div>
                  </div>
 
-                 <div className="h-8 w-full opacity-60">
+                 <div className="h-7 w-full opacity-60">
                     <Barcode />
                  </div>
                  

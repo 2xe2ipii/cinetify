@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { getAccessToken, getProfileData } from "./services/spotify"; // UPDATED import
-import { matchMovieWithAI } from "./services/gemini";
+import { matchMovieWithAI, clearGeminiCache } from "./services/gemini";
 import { getMoviePoster } from "./services/tmdb";
 import { MovieTicket } from "./components/MovieTicket";
 import { Login } from "./components/Login";
@@ -153,7 +153,13 @@ function App() {
 
   const manualRetry = () => {
     if (!token) return;
+    
+    // Clear the UI persistence
     window.localStorage.removeItem("plot_twist_match");
+    
+    // Clear the AI persistence (THIS IS THE FIX)
+    clearGeminiCache();
+    
     generateMovie(token, timeRange);
   };
 

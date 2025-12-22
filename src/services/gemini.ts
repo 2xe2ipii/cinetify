@@ -53,11 +53,24 @@ function cacheSet(key: string, data: MovieMatch) {
   }
 }
 
+// === NEW FUNCTION: Force Clear Cache ===
+export function clearGeminiCache() {
+  try {
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith(CACHE_PREFIX)) {
+        localStorage.removeItem(key);
+      }
+    });
+    console.log("Gemini cache cleared.");
+  } catch (e) {
+    console.error("Failed to clear cache", e);
+  }
+}
+// =======================================
+
 function normalizeMovieMatch(x: any): MovieMatch {
   const title = String(x?.title ?? "").trim();
   const genre = String(x?.genre ?? "").trim();
-  
-  // Robust check: look for 'quote', 'quotation', or 'dialogue'
   const quote = String(x?.quote ?? x?.quotation ?? x?.dialogue ?? "").trim();
 
   if (!title || !genre || !quote) {
@@ -140,7 +153,6 @@ export async function matchMovieWithAI(tracks: string[], genres: string[]): Prom
       return finalData;
 
     } catch (e: any) {
-      // Error is re-thrown for UI handling, but not logged to console
       throw new Error(`AI Request Failed: ${e.message}`);
     }
   })();

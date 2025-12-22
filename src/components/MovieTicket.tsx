@@ -128,9 +128,9 @@ export const MovieTicket = ({ match, tracks, artists, userName }: Props) => {
       const dataUrl = await toPng(ticketRef.current, {
         cacheBust: true,
         pixelRatio: 3,
-        // 'transparent' ensures the notches (cutouts) are see-through
-        // The background color of the ticket ITSELF comes from the div styles
-        backgroundColor: 'transparent', 
+        // Ensure the export background is transparent so the notches are see-through
+        // The ticket's solid color comes from the internal div
+        backgroundColor: 'transparent',
       });
       const link = document.createElement('a');
       link.download = `Sinetify_${match.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.png`;
@@ -144,8 +144,9 @@ export const MovieTicket = ({ match, tracks, artists, userName }: Props) => {
     }
   }, [match.title]);
 
-  // Notch sizing
-  const footerHeight = '90px'; // Consistent space for footer
+  // Height of the footer area (perforation + barcode + text)
+  // This is used to position the notches (cutouts) perfectly
+  const footerAreaHeight = '110px'; 
 
   return (
     <div className="w-full flex flex-col items-center gap-6 animate-in slide-in-from-bottom-8 duration-700 font-sans">
@@ -176,148 +177,120 @@ export const MovieTicket = ({ match, tracks, artists, userName }: Props) => {
       <div className="relative drop-shadow-2xl">
         <div
           ref={ticketRef}
-          // Changed aspect-[9/16] to min-h to allow growth
-          className={`relative w-full max-w-[380px] min-h-[500px] overflow-hidden flex flex-col ${theme.text} ${theme.font}`}
-          style={{ 
-            backgroundColor: theme.bgHex, // Background color explicitly set here
-            // DYNAMIC MASK: Notches are calculated from the BOTTOM
-            // This means no matter how tall the list grows, notches stay above the footer
-            maskImage: `radial-gradient(circle at 0% calc(100% - ${footerHeight}), transparent 12px, black 13px), 
-                        radial-gradient(circle at 100% calc(100% - ${footerHeight}), transparent 12px, black 13px)`,
-            WebkitMaskImage: `radial-gradient(circle at 0% calc(100% - ${footerHeight}), transparent 12px, black 13px), 
-                              radial-gradient(circle at 100% calc(100% - ${footerHeight}), transparent 12px, black 13px)`
-          }}
+          // min-w set to fit phone width nicely. h-auto allows it to shrink/grow with content.
+          className={`relative w-full max-w-[380px] min-w-[340px] flex flex-col ${theme.text} ${theme.font}`}
         >
-          {/* --- POSTER BACKGROUND --- */}
-          {/* Fixed height poster that sits at the top */}
-          <div className="absolute top-0 left-0 w-full h-[500px] z-0">
-             <CorsImg
-               src={match.posterPath}
-               alt="Poster"
-               className="w-full h-full object-cover object-top"
-             />
-             {/* Gradient Fade to Theme Color */}
-             <div 
-               className="absolute inset-0"
-               style={{
-                 background: `linear-gradient(to bottom, transparent 30%, ${theme.bgHex} 90%, ${theme.bgHex} 100%)`
-               }}
-             />
-          </div>
-
-          {/* Texture Overlay */}
-          <div className="absolute inset-0 z-10 opacity-[0.05] pointer-events-none mix-blend-multiply" 
-             style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }} 
-          />
-
-          {/* --- CONTENT LAYER --- */}
-          {/* Z-20 ensures this sits ON TOP of the poster and gradient */}
-          <div className="relative z-20 flex flex-col h-full px-6 pt-6">
-
-            {/* 1. HEADER (Larger Badges) */}
-            <div className="flex justify-between items-start mb-6">
-                <div className={`px-4 py-1.5 ${isDark ? 'bg-white text-black' : 'bg-black text-white'} text-[12px] font-black uppercase tracking-[0.2em] shadow-lg`}>
-                    Now Showing
-                </div>
-                {/* Admit One Stamp */}
-                <div className={`px-4 py-1.5 ${theme.highlight} font-mono text-[12px] font-bold uppercase tracking-tighter rotate-[-6deg] shadow-lg border-2 border-dashed border-current/20`}>
-                    ADMIT ONE
-                </div>
+            {/* === 1. BACKGROUND LAYER (Handles Mask & Color) === */}
+            {/* This separate layer ensures the background color renders correctly in download */}
+            <div 
+                className="absolute inset-0 z-0 pointer-events-none"
+                style={{ 
+                    backgroundColor: theme.bgHex,
+                    // The mask is applied HERE, on the background layer
+                    maskImage: `radial-gradient(circle at 0% calc(100% - ${footerAreaHeight}), transparent 12px, black 13px), 
+                                radial-gradient(circle at 100% calc(100% - ${footerAreaHeight}), transparent 12px, black 13px)`,
+                    WebkitMaskImage: `radial-gradient(circle at 0% calc(100% - ${footerAreaHeight}), transparent 12px, black 13px), 
+                                      radial-gradient(circle at 100% calc(100% - ${footerAreaHeight}), transparent 12px, black 13px)`
+                }}
+            >
+                {/* Texture Overlay inside the background layer */}
+                <div className="absolute inset-0 opacity-[0.05] mix-blend-multiply" 
+                     style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }} 
+                />
             </div>
 
-            {/* PUSH CONTENT DOWN */}
-            {/* Using margin instead of empty div for cleaner flex */}
-            <div className="mt-[220px]" /> 
-
-            {/* 2. TAB SELECTION */}
-            <div className="flex w-full text-[11px] font-black uppercase tracking-widest mb-4 drop-shadow-md">
-                <button
-                  onClick={() => setActiveTab('soundtrack')}
-                  className={`flex-1 pb-1 text-left transition ${
-                    activeTab === 'soundtrack' ? 'opacity-100 border-b-2 border-current' : 'opacity-50 hover:opacity-80'
-                  }`}
-                >
-                  Tracks
-                </button>
-                <button
-                  onClick={() => setActiveTab('cast')}
-                  className={`flex-1 pb-1 text-center transition ${
-                    activeTab === 'cast' ? 'opacity-100 border-b-2 border-current' : 'opacity-50 hover:opacity-80'
-                  }`}
-                >
-                  Cast
-                </button>
-                <button
-                  onClick={() => setActiveTab('genres')}
-                  className={`flex-1 pb-1 text-right transition ${
-                    activeTab === 'genres' ? 'opacity-100 border-b-2 border-current' : 'opacity-50 hover:opacity-80'
-                  }`}
-                >
-                  Genres
-                </button>
+            {/* === 2. POSTER LAYER === */}
+            {/* Fixed height at top, sits behind content but above bg layer */}
+            <div className="absolute top-0 left-0 w-full h-[520px] z-0 overflow-hidden rounded-t-[2px]">
+                <CorsImg
+                    src={match.posterPath}
+                    alt="Poster"
+                    className="w-full h-full object-cover object-top"
+                />
+                {/* Gradient Fade - Starts at 30% and is SOLID by 90% */}
+                <div 
+                    className="absolute inset-0"
+                    style={{
+                        background: `linear-gradient(to bottom, transparent 30%, ${theme.bgHex} 90%, ${theme.bgHex} 100%)`
+                    }}
+                />
             </div>
 
-            {/* 3. MAIN LIST (Auto Height) */}
-            <div className="flex-1 flex flex-col justify-start min-h-0">
-                {activeTab === 'soundtrack' && (
-                    <div className="flex flex-col gap-[10px] pb-4"> 
-                      {tracks.slice(0, 10).map((t, i) => (
-                        <div 
-                          key={i} 
-                          className="flex items-baseline justify-between w-full text-[11px] leading-none drop-shadow-md group"
-                        >
-                          <div className="flex items-center gap-3 truncate max-w-[75%]">
-                              {/* Index */}
-                              <span className="font-mono text-[10px] opacity-60 w-4 text-right">{i + 1}</span>
-                              {/* Title */}
-                              <span className="font-bold uppercase tracking-tight truncate opacity-100 group-hover:text-red-500 transition-colors">
-                                {t.name}
-                              </span>
-                          </div>
-                          {/* Artist */}
-                          <span className="text-[10px] font-medium opacity-70 truncate max-w-[20%] text-right">
-                            {t.artists[0].name}
-                          </span>
+            {/* === 3. CONTENT LAYER === */}
+            <div className="relative z-10 flex flex-col w-full px-6 pt-6">
+
+                {/* --- HEADER --- */}
+                <div className="flex justify-between items-start mb-6">
+                    <div className={`px-4 py-1.5 ${isDark ? 'bg-white text-black' : 'bg-black text-white'} text-[12px] font-black uppercase tracking-[0.2em] shadow-lg`}>
+                        Now Showing
+                    </div>
+                    <div className={`px-4 py-1.5 ${theme.highlight} font-mono text-[12px] font-bold uppercase tracking-tighter rotate-[-6deg] shadow-lg border-2 border-dashed border-current/20`}>
+                        ADMIT ONE
+                    </div>
+                </div>
+
+                {/* --- SPACER FOR POSTER VISIBILITY --- */}
+                {/* This pushes the start of the list down so we see the movie art */}
+                <div className="h-[240px] shrink-0" />
+
+                {/* --- TABS --- */}
+                <div className="flex w-full text-[11px] font-black uppercase tracking-widest mb-5 drop-shadow-md">
+                    <button onClick={() => setActiveTab('soundtrack')} className={`flex-1 pb-1 text-left transition ${activeTab === 'soundtrack' ? 'opacity-100 border-b-2 border-current' : 'opacity-50 hover:opacity-80'}`}>Tracks</button>
+                    <button onClick={() => setActiveTab('cast')} className={`flex-1 pb-1 text-center transition ${activeTab === 'cast' ? 'opacity-100 border-b-2 border-current' : 'opacity-50 hover:opacity-80'}`}>Cast</button>
+                    <button onClick={() => setActiveTab('genres')} className={`flex-1 pb-1 text-right transition ${activeTab === 'genres' ? 'opacity-100 border-b-2 border-current' : 'opacity-50 hover:opacity-80'}`}>Genres</button>
+                </div>
+
+                {/* --- MAIN LIST (HUGS CONTENT) --- */}
+                <div className="flex flex-col min-h-0">
+                    {activeTab === 'soundtrack' && (
+                        <div className="flex flex-col gap-3">
+                            {tracks.slice(0, 10).map((t, i) => (
+                                <div key={i} className="flex items-baseline justify-between w-full text-[11px] leading-none drop-shadow-md group">
+                                    <div className="flex items-center gap-3 truncate max-w-[75%]">
+                                        <span className="font-mono text-[10px] opacity-60 w-4 text-right">{i + 1}</span>
+                                        <span className="font-bold uppercase tracking-tight truncate opacity-100 group-hover:text-red-500 transition-colors">{t.name}</span>
+                                    </div>
+                                    <span className="text-[10px] font-medium opacity-70 truncate max-w-[20%] text-right">{t.artists[0].name}</span>
+                                </div>
+                            ))}
                         </div>
-                      ))}
-                    </div>
-                )}
-                
-                {activeTab === 'cast' && (
-                    <div className="grid grid-cols-4 gap-3 pt-2 pb-6">
-                      {artists.slice(0, 8).map((a, i) => (
-                          <div key={i} className="flex flex-col items-center gap-1 drop-shadow-sm">
-                            <div className={`w-11 h-11 rounded-full overflow-hidden grayscale ${theme.panel} ring-2 ring-white/10 shadow-lg`}>
-                              {a.images?.[0]?.url && <CorsImg src={a.images[0].url} className="w-full h-full object-cover" />}
-                            </div>
-                            <span className="text-[7px] font-bold uppercase truncate max-w-full opacity-90">{a.name.split(' ')[0]}</span>
-                          </div>
-                      ))}
-                    </div>
-                )}
+                    )}
+                    
+                    {activeTab === 'cast' && (
+                        <div className="grid grid-cols-4 gap-3 pt-2">
+                            {artists.slice(0, 8).map((a, i) => (
+                                <div key={i} className="flex flex-col items-center gap-1 drop-shadow-sm">
+                                    <div className={`w-11 h-11 rounded-full overflow-hidden grayscale ${theme.panel} ring-2 ring-white/10 shadow-lg`}>
+                                        {a.images?.[0]?.url && <CorsImg src={a.images[0].url} className="w-full h-full object-cover" />}
+                                    </div>
+                                    <span className="text-[7px] font-bold uppercase truncate max-w-full opacity-90">{a.name.split(' ')[0]}</span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
 
-                {activeTab === 'genres' && (
-                  <div className="flex flex-wrap gap-2 content-start pt-4 justify-center pb-6">
-                    {topGenres.map((g, i) => (
-                      <span key={i} className={`px-3 py-1.5 text-[10px] font-bold uppercase border ${theme.border} backdrop-blur-sm shadow-sm ${i < 2 ? theme.highlight : 'opacity-80 bg-current/5'}`}>
-                        {g}
-                      </span>
-                    ))}
-                  </div>
-                )}
-            </div>
-
-            {/* 4. PERFORATION & FOOTER (Fixed Height Area) */}
-            {/* The wrapper ensures this sticks to the bottom of the flow */}
-            <div className="mt-4">
-                {/* Perforation Line - Aligned with the notches */}
-                <div className="relative w-full pb-4 flex items-center justify-center">
-                    <div className={`w-full border-t-[3px] border-dashed ${theme.border} opacity-40`} />
+                    {activeTab === 'genres' && (
+                        <div className="flex flex-wrap gap-2 content-start pt-4 justify-center">
+                            {topGenres.map((g, i) => (
+                                <span key={i} className={`px-3 py-1.5 text-[10px] font-bold uppercase border ${theme.border} backdrop-blur-sm shadow-sm ${i < 2 ? theme.highlight : 'opacity-80 bg-current/5'}`}>
+                                    {g}
+                                </span>
+                            ))}
+                        </div>
+                    )}
                 </div>
 
-                {/* Footer Data */}
-                <div className="flex flex-col gap-2 pb-5">
-                    <div className="flex justify-between items-end opacity-70">
+                {/* --- FOOTER AREA --- */}
+                {/* Sits directly below list with specific gap */}
+                <div className="flex flex-col mt-6 pb-6">
+                    
+                    {/* Perforation Line */}
+                    <div className="relative w-full pb-4 flex items-center justify-center">
+                        <div className={`w-full border-t-[3px] border-dashed ${theme.border} opacity-40`} />
+                    </div>
+
+                    {/* Metadata */}
+                    <div className="flex justify-between items-end opacity-70 mb-2">
                         <div className="flex flex-col">
                             <span className="text-[7px] uppercase tracking-widest opacity-60">Film</span>
                             <span className="text-[11px] font-black uppercase leading-none max-w-[150px] truncate">{match.title}</span>
@@ -328,18 +301,19 @@ export const MovieTicket = ({ match, tracks, artists, userName }: Props) => {
                         </div>
                     </div>
 
-                    <div className="h-8 w-full opacity-60">
+                    {/* Barcode */}
+                    <div className="h-8 w-full opacity-60 mb-2">
                         <Barcode />
                     </div>
                     
+                    {/* User Info */}
                     <div className="flex justify-between text-[7px] uppercase font-bold tracking-[0.2em] opacity-40">
                         <span>{userName}</span>
                         <span>{new Date().toLocaleDateString()}</span>
                     </div>
                 </div>
-            </div>
 
-          </div>
+            </div>
         </div>
       </div>
     </div>

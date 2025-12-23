@@ -1,9 +1,11 @@
+import type { Track, AudioFeatures } from "../types";
+
 const CLIENT_ID = import.meta.env.VITE_SPOTIFY_CLIENT_ID;
-const REDIRECT_URI = import.meta.env.MODE === 'production'
+const REDIRECT_URI = import.meta.env.MODE === 'development'
   ? "https://cinetify.vercel.app" 
   : "http://127.0.0.1:5173/callback";
 
-// REAL Spotify Endpoints
+// Using standard Spotify API URL
 const AUTH_ENDPOINT = "https://accounts.spotify.com/authorize";
 const TOKEN_ENDPOINT = "https://accounts.spotify.com/api/token";
 const API_BASE_URL = "https://api.spotify.com/v1";
@@ -45,13 +47,13 @@ export const getAccessToken = async (code: string) => {
   return access_token;
 };
 
-// --- UPDATED: Fetch both Tracks & Artists with Time Range ---
+// --- UPDATED: Fetch Tracks, Artists AND Audio Features ---
 export const getProfileData = async (token: string, timeRange: string = "medium_term") => {
   const headers = { Authorization: `Bearer ${token}` };
 
-  // Parallel fetch for speed
+  // 1. Fetch Tracks and Artists first
   const [tracksRes, artistsRes] = await Promise.all([
-    fetch(`${API_BASE_URL}/me/top/tracks?limit=10&time_range=${timeRange}`, { headers }),
+    fetch(`${API_BASE_URL}/me/top/tracks?limit=20&time_range=${timeRange}`, { headers }),
     fetch(`${API_BASE_URL}/me/top/artists?limit=10&time_range=${timeRange}`, { headers })
   ]);
 
@@ -61,20 +63,27 @@ export const getProfileData = async (token: string, timeRange: string = "medium_
 
   const tracksData = await tracksRes.json();
   const artistsData = await artistsRes.json();
+  
+  const tracks: Track[] = tracksData.items;
+
+  // 2. Fetch Audio Features for these specific tracks
+  // We extract IDs and join them with commas
+  const trackIds = tracks.map(t => t.id).join(',');
+  
+  const featuresRes = await fetch(`${API_BASE_URL}/audio-features?ids=${trackIds}`, { headers });
+  
+  if (!featuresRes.ok) {
+    // We don't crash the app if features fail, just return empty
+    return { tracks, artists: artistsData.items, features: [] };
+  }
+
+  const featuresData = await featuresRes.json();
 
   return {
-    tracks: tracksData.items,
-    artists: artistsData.items
+    tracks,
+    artists: artistsData.items,
+    features: featuresData.audio_features as AudioFeatures[]
   };
-};
-
-export const getTopTracks = async (token: string) => {
-  // Legacy fallback
-  const response = await fetch(`${API_BASE_URL}/me/top/tracks?limit=10&time_range=medium_term`, {
-    headers: { Authorization: `Bearer ${token}` }
-  });
-  const data = await response.json();
-  return data.items;
 };
 
 // --- PKCE Helper Functions ---

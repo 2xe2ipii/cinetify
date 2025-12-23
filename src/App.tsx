@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
-import { getAccessToken, getProfileData } from "./services/spotify"; // UPDATED import
-import { matchMovieWithAI, clearGeminiCache } from "./services/gemini";
+import { getAccessToken, getProfileData } from "./services/spotify";
+import { findMovieMatch } from "./services/engine"; // NEW IMPORT
 import { getMoviePoster } from "./services/tmdb";
 import { MovieTicket } from "./components/MovieTicket";
 import { Login } from "./components/Login";
@@ -21,7 +21,7 @@ function App() {
   
   // Data State
   const [tracks, setTracks] = useState<Track[]>([]);
-  const [artists, setArtists] = useState<any[]>([]); // Added back artists state
+  const [artists, setArtists] = useState<any[]>([]); 
   const [match, setMatch] = useState<MovieMatch | null>(null);
   const [timeRange, setTimeRange] = useState<TimeRange>('medium_term');
 
@@ -33,11 +33,10 @@ function App() {
   const inFlight = useRef(false);
   const hasFetched = useRef(false);
 
-  // UPDATED: Accepts optional range, defaults to current state
   const generateMovie = useCallback(async (authToken: string, rangeOverride?: TimeRange) => {
     if (inFlight.current) return;
 
-    const range = rangeOverride || timeRange; // Use override if provided (clicking tab)
+    const range = rangeOverride || timeRange;
 
     inFlight.current = true;
     setLoading(true);
@@ -45,31 +44,25 @@ function App() {
     setMatch(null);
 
     try {
-      // 1. Fetch Profile Data (Tracks + Artists)
-      const { tracks: spotifyTracks, artists: spotifyArtists } = await getProfileData(authToken, range);
+      // 1. Fetch Profile Data (Tracks + Artists + Audio Features)
+      const { tracks: spotifyTracks, artists: spotifyArtists, features } = await getProfileData(authToken, range);
       
       setTracks(spotifyTracks);
       setArtists(spotifyArtists);
 
       if (!spotifyTracks.length) throw new Error("No tracks found on Spotify!");
 
-      // 2. Prepare Prompt
-      const trackList = spotifyTracks
-        .slice(0, 20)
-        .map((t: Track) => `${t.name} by ${t.artists?.[0]?.name ?? "Unknown Artist"}`);
+      // 2. Local Engine Match (Instant & Deterministic)
+      const engineResult = findMovieMatch(features);
 
-      // 3. AI Match
-      const aiResult = await matchMovieWithAI(trackList, ["General Vibe"]);
-
-      // 4. Poster Fetch
-      const poster = await getMoviePoster(aiResult.title);
-      const finalMatch: MovieMatch = { ...aiResult, posterPath: poster || undefined };
+      // 3. Poster Fetch
+      const poster = await getMoviePoster(engineResult.title);
+      const finalMatch: MovieMatch = { ...engineResult, posterPath: poster || undefined };
 
       setMatch(finalMatch);
       
       // Save for persistence
       window.localStorage.setItem("plot_twist_match", JSON.stringify(finalMatch));
-      // Also save the range preference if you want (optional)
       
     } catch (err: any) {
       console.error("Generation failed:", err);
@@ -79,7 +72,7 @@ function App() {
       inFlight.current = false;
       hasFetched.current = true; 
     }
-  }, [timeRange]); // Dependency on timeRange
+  }, [timeRange]);
 
   // Handle manual range switch
   const handleRangeChange = (newRange: TimeRange) => {
@@ -153,13 +146,7 @@ function App() {
 
   const manualRetry = () => {
     if (!token) return;
-    
-    // Clear the UI persistence
     window.localStorage.removeItem("plot_twist_match");
-    
-    // Clear the AI persistence (THIS IS THE FIX)
-    clearGeminiCache();
-    
     generateMovie(token, timeRange);
   };
 
@@ -207,7 +194,7 @@ function App() {
           {loading && !match && (
             <div className="flex flex-col items-center gap-4 text-stone-500 animate-pulse">
               <Loader2 className="animate-spin w-10 h-10 text-red-600" />
-              <p className="text-xs uppercase tracking-[0.3em]">Analyzing Soundtrack...</p>
+              <p className="text-xs uppercase tracking-[0.3em]">Calibrating Vibe...</p>
             </div>
           )}
 

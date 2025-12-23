@@ -9,11 +9,12 @@ export interface AudioFeatures {
   valence: number;
   energy: number;
   danceability: number;
+  acousticness: number;
 }
 
 export interface MovieMatch {
   title: string;
   genre: string;
-  quote: string;
+  // quote: string;  <-- DELETE THIS LINE
   posterPath?: string;
 }

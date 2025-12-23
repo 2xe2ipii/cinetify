@@ -1,7 +1,7 @@
 import type { Track, AudioFeatures } from "../types";
 
 const CLIENT_ID = import.meta.env.VITE_SPOTIFY_CLIENT_ID;
-const REDIRECT_URI = import.meta.env.MODE === 'development'
+const REDIRECT_URI = import.meta.env.MODE === 'production'
   ? "https://cinetify.vercel.app" 
   : "http://127.0.0.1:5173/callback";
 
